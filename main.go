@@ -11,5 +11,5 @@ func main() {
 		panic(err)
 	}
 
-	sdk.New(plg)
+	sdk.New(plg).Execute()
 }
