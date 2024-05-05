@@ -1,0 +1,81 @@
+---
+project_name: kaytu
+
+release:
+  github:
+    owner: kaytu-io
+    name: kaytu
+
+checksum: {}
+
+builds:
+  - id: linux
+    binary: kaytu
+    ldflags:
+      - -s -w -X github.com/kaytu-io/kaytu/cmd/predef.VERSION={{ .Version }}
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    main: ./main.go
+  - id: darwin
+    binary: kaytu
+    ldflags:
+      - -s -w -X github.com/kaytu-io/kaytu/cmd/predef.VERSION={{ .Version }}
+    goos:
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    main: ./main.go
+  - id: windows
+    binary: kaytu
+    ldflags:
+      - -s -w -X github.com/kaytu-io/kaytu/cmd/predef.VERSION={{ .Version }}
+    goos:
+      - windows
+    goarch:
+      - amd64
+    main: ./main.go
+archives:
+  - id: binary
+    format: binary
+  - id: default
+    format: tar.gz
+    builds: [linux, darwin]
+  - id: windows
+    format: zip
+    builds: [windows]
+#chocolateys:
+#  - name: kaytu
+#    ids:
+#      - kaytu
+#    package_source_url: https://github.com/kaytu-io/kaytu
+#    owners: Kaytu Inc.
+#    title: kaytu
+#    authors: Kaytu
+#    project_url: https://kaytu.io/
+#    tags: "kaytu"
+#    summary: Kaytu cli program
+#    description: Kaytu cli program
+#    dependencies:
+#      - id: nfpm
+#        version: 2.20.0
+#    api_key: "{{ .Env.CHOCOLATEY_API_KEY }}"
+#    source_repo: "https://push.chocolatey.org/"
+#    skip_publish: false
+#    goamd64: v1
+#    files:
+#      - src: "dist/windows_amd64/kaytu.exe"
+#        dest: "bin"
+signs:
+  - cmd: cosign
+    stdin: "{{ .Env.COSIGN_PWD }}"
+    args:
+      - "sign-blob"
+      - "--key=env://COSIGN_SECRET"
+      - "--output-signature=${signature}"
+      - "${artifact}"
+      - "--yes"
+    artifacts: checksum
