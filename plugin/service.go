@@ -32,7 +32,7 @@ func (p *AWSPlugin) GetConfig() golang.RegisterConfig {
 					{
 						Name:        "profile",
 						Default:     "",
-						Description: "AWS Profile",
+						Description: "AWS profile for authentication",
 						Required:    false,
 					},
 				},
