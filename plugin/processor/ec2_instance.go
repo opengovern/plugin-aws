@@ -11,6 +11,7 @@ import (
 	"github.com/kaytu-io/kaytu/preferences"
 	aws2 "github.com/kaytu-io/plugin-aws/plugin/aws"
 	kaytu2 "github.com/kaytu-io/plugin-aws/plugin/kaytu"
+	preferences2 "github.com/kaytu-io/plugin-aws/plugin/preferences"
 	"github.com/kaytu-io/plugin-aws/plugin/version"
 	"strings"
 	"sync"
@@ -106,7 +107,7 @@ func (m *EC2InstanceProcessor) processRegion(region string) {
 			Instance:            instance,
 			Region:              region,
 			OptimizationLoading: true,
-			Preferences:         preferences.DefaultPreferences(),
+			Preferences:         preferences2.DefaultPreferences,
 		}
 
 		isAutoScaling := false
@@ -267,7 +268,7 @@ func (m *EC2InstanceProcessor) processRegion(region string) {
 			VolumeMetrics:       volumeMetrics,
 			Region:              region,
 			OptimizationLoading: true,
-			Preferences:         preferences.DefaultPreferences(),
+			Preferences:         preferences2.DefaultPreferences,
 		}
 		if instance.State.Name != types.InstanceStateNameRunning ||
 			instance.InstanceLifecycle == types.InstanceLifecycleTypeSpot ||

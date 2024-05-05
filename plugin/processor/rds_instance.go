@@ -10,6 +10,7 @@ import (
 	"github.com/kaytu-io/kaytu/preferences"
 	"github.com/kaytu-io/plugin-aws/plugin/aws"
 	"github.com/kaytu-io/plugin-aws/plugin/kaytu"
+	preferences2 "github.com/kaytu-io/plugin-aws/plugin/preferences"
 	"github.com/kaytu-io/plugin-aws/plugin/version"
 	"os"
 	"strings"
@@ -108,7 +109,7 @@ func (m *RDSInstanceProcessor) ProcessRegion(region string) {
 			Instance:            instance,
 			Region:              region,
 			OptimizationLoading: true,
-			Preferences:         preferences.DefaultPreferences(),
+			Preferences:         preferences2.DefaultPreferences,
 		}
 
 		// just to show the loading
@@ -161,7 +162,7 @@ func (m *RDSInstanceProcessor) ProcessRegion(region string) {
 			Metrics:             instanceMetrics,
 			Region:              region,
 			OptimizationLoading: true,
-			Preferences:         preferences.DefaultPreferences(),
+			Preferences:         preferences2.DefaultPreferences,
 		}
 
 		m.items[*oi.Instance.DBInstanceIdentifier] = oi

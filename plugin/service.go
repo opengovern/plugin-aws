@@ -6,6 +6,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/kaytu-io/kaytu/pkg/plugin/proto/src/golang"
 	awsConfig "github.com/kaytu-io/plugin-aws/plugin/aws"
+	"github.com/kaytu-io/plugin-aws/plugin/preferences"
 	processor2 "github.com/kaytu-io/plugin-aws/plugin/processor"
 	"github.com/kaytu-io/plugin-aws/plugin/version"
 )
@@ -51,6 +52,7 @@ func (p *AWSPlugin) GetConfig() golang.RegisterConfig {
 				},
 			},
 		},
+		DefaultPreferences: preferences.DefaultPreferences,
 	}
 }
 
