@@ -17,13 +17,13 @@ require (
 	github.com/evertras/bubble-table v0.15.7
 	github.com/golang-jwt/jwt/v4 v4.5.0
 	github.com/iancoleman/strcase v0.3.0
+	github.com/kaytu-io/kaytu v0.5.6-0.20240505102157-7b869ab5e754
 	github.com/muesli/reflow v0.3.0
 	github.com/spf13/cobra v1.8.0
 	golang.org/x/net v0.24.0
 	google.golang.org/grpc v1.63.2
 	google.golang.org/protobuf v1.34.0
 	gopkg.in/yaml.v2 v2.4.0
-	github.com/kaytu-io/kaytu v0.5.5
 )
 
 require (
@@ -39,6 +39,7 @@ require (
 	github.com/aws/smithy-go v1.20.2 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
 	github.com/containerd/console v1.0.4-0.20230313162750-1ae8d489ac81 // indirect
+	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
@@ -64,4 +65,3 @@ require (
 replace github.com/spf13/cobra => github.com/spf13/cobra v1.4.0
 
 replace github.com/gruntwork-io/terragrunt => github.com/infracost/terragrunt v0.47.1-0.20231103101711-77c5e7d4d795
-replace github.com/kaytu-io/kaytu => ../kaytu
