@@ -5,36 +5,36 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	types2 "github.com/aws/aws-sdk-go-v2/service/cloudwatch/types"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
-	preferences2 "github.com/kaytu-io/kaytu/cmd/optimize/preferences"
-	"github.com/kaytu-io/kaytu/pkg/api/wastage"
-	"github.com/kaytu-io/kaytu/pkg/hash"
 	"github.com/kaytu-io/kaytu/pkg/plugin/proto/src/golang"
-	"os"
+	"github.com/kaytu-io/kaytu/pkg/utils"
+	"github.com/kaytu-io/kaytu/preferences"
+	aws2 "github.com/kaytu-io/plugin-aws/plugin/aws"
+	kaytu2 "github.com/kaytu-io/plugin-aws/plugin/kaytu"
 	"strings"
 	"sync"
 	"time"
 )
 
 type EC2InstanceProcessor struct {
-	provider       *AWS
-	metricProvider *CloudWatch
-	identification map[string]string
-
-	processWastageChan chan EC2InstanceItem
-	items              map[string]EC2InstanceItem
-
-	PublishJob              func(result *golang.JobResult) *golang.JobResult
-	PublishError            func(error)
-	PublishOptimizationItem func(item *golang.OptimizationItem)
+	provider                *aws2.AWS
+	metricProvider          *aws2.CloudWatch
+	identification          map[string]string
+	processWastageChan      chan EC2InstanceItem
+	items                   map[string]EC2InstanceItem
+	publishJob              func(result *golang.JobResult) *golang.JobResult
+	publishError            func(error)
+	publishOptimizationItem func(item *golang.OptimizationItem)
+	kaytuAcccessToken       string
 }
 
 func NewEC2InstanceProcessor(
-	prv *AWS,
-	metric *CloudWatch,
+	prv *aws2.AWS,
+	metric *aws2.CloudWatch,
 	identification map[string]string,
 	publishJob func(result *golang.JobResult) *golang.JobResult,
 	publishError func(error),
 	publishOptimizationItem func(item *golang.OptimizationItem),
+	kaytuAcccessToken string,
 ) *EC2InstanceProcessor {
 	r := &EC2InstanceProcessor{
 		processWastageChan:      make(chan EC2InstanceItem, 1000),
@@ -42,9 +42,10 @@ func NewEC2InstanceProcessor(
 		metricProvider:          metric,
 		identification:          identification,
 		items:                   map[string]EC2InstanceItem{},
-		PublishJob:              publishJob,
-		PublishOptimizationItem: publishOptimizationItem,
-		PublishError:            publishError,
+		publishJob:              publishJob,
+		publishOptimizationItem: publishOptimizationItem,
+		publishError:            publishError,
+		kaytuAcccessToken:       kaytuAcccessToken,
 	}
 	go r.processWastages()
 	go r.processAllRegions()
@@ -54,19 +55,19 @@ func NewEC2InstanceProcessor(
 func (m *EC2InstanceProcessor) processAllRegions() {
 	defer func() {
 		if r := recover(); r != nil {
-			m.PublishError(fmt.Errorf("%v", r))
+			m.publishError(fmt.Errorf("%v", r))
 		}
 	}()
 
-	job := m.PublishJob(&golang.JobResult{Id: "list_all_regions", Description: "Listing all available regions"})
+	job := m.publishJob(&golang.JobResult{Id: "list_all_regions", Description: "Listing all available regions"})
 	job.Done = true
 	regions, err := m.provider.ListAllRegions()
 	if err != nil {
 		job.FailureMessage = err.Error()
-		m.PublishJob(job)
+		m.publishJob(job)
 		return
 	}
-	m.PublishJob(job)
+	m.publishJob(job)
 
 	wg := sync.WaitGroup{}
 	wg.Add(len(regions))
@@ -83,27 +84,27 @@ func (m *EC2InstanceProcessor) processAllRegions() {
 func (m *EC2InstanceProcessor) processRegion(region string) {
 	defer func() {
 		if r := recover(); r != nil {
-			m.PublishError(fmt.Errorf("%v", r))
+			m.publishError(fmt.Errorf("%v", r))
 		}
 	}()
 
-	job := m.PublishJob(&golang.JobResult{Id: fmt.Sprintf("region_ec2_instances_%s", region), Description: "Listing all ec2 instances in " + region})
+	job := m.publishJob(&golang.JobResult{Id: fmt.Sprintf("region_ec2_instances_%s", region), Description: "Listing all ec2 instances in " + region})
 	job.Done = true
 
 	instances, err := m.provider.ListInstances(region)
 	if err != nil {
 		job.FailureMessage = err.Error()
-		m.PublishJob(job)
+		m.publishJob(job)
 		return
 	}
-	m.PublishJob(job)
+	m.publishJob(job)
 
 	for _, instance := range instances {
 		oi := EC2InstanceItem{
 			Instance:            instance,
 			Region:              region,
 			OptimizationLoading: true,
-			Preferences:         preferences2.DefaultPreferences(),
+			Preferences:         preferences.DefaultPreferences(),
 		}
 
 		isAutoScaling := false
@@ -132,7 +133,7 @@ func (m *EC2InstanceProcessor) processRegion(region string) {
 
 		// just to show the loading
 		m.items[*oi.Instance.InstanceId] = oi
-		m.PublishOptimizationItem(oi.ToOptimizationItem())
+		m.publishOptimizationItem(oi.ToOptimizationItem())
 	}
 
 	for _, instance := range instances {
@@ -148,18 +149,18 @@ func (m *EC2InstanceProcessor) processRegion(region string) {
 			continue
 		}
 
-		vjob := m.PublishJob(&golang.JobResult{Id: fmt.Sprintf("volumes_%s", *instance.InstanceId), Description: fmt.Sprintf("getting volumes of %s", *instance.InstanceId)})
+		vjob := m.publishJob(&golang.JobResult{Id: fmt.Sprintf("volumes_%s", *instance.InstanceId), Description: fmt.Sprintf("getting volumes of %s", *instance.InstanceId)})
 		vjob.Done = true
 
 		volumes, err := m.provider.ListAttachedVolumes(region, instance)
 		if err != nil {
 			vjob.FailureMessage = err.Error()
-			m.PublishJob(vjob)
+			m.publishJob(vjob)
 			return
 		}
-		m.PublishJob(vjob)
+		m.publishJob(vjob)
 
-		imjob := m.PublishJob(&golang.JobResult{Id: fmt.Sprintf("instance_%s_metrics", *instance.InstanceId), Description: fmt.Sprintf("getting metrics of %s", *instance.InstanceId)})
+		imjob := m.publishJob(&golang.JobResult{Id: fmt.Sprintf("instance_%s_metrics", *instance.InstanceId), Description: fmt.Sprintf("getting metrics of %s", *instance.InstanceId)})
 		imjob.Done = true
 		startTime := time.Now().Add(-24 * 7 * time.Hour)
 		endTime := time.Now()
@@ -184,7 +185,7 @@ func (m *EC2InstanceProcessor) processRegion(region string) {
 		)
 		if err != nil {
 			imjob.FailureMessage = err.Error()
-			m.PublishJob(imjob)
+			m.publishJob(imjob)
 			return
 		}
 		for k, v := range cwMetrics {
@@ -209,15 +210,15 @@ func (m *EC2InstanceProcessor) processRegion(region string) {
 		)
 		if err != nil {
 			imjob.FailureMessage = err.Error()
-			m.PublishJob(imjob)
+			m.publishJob(imjob)
 			return
 		}
 		for k, v := range cwaMetrics {
 			instanceMetrics[k] = v
 		}
-		m.PublishJob(imjob)
+		m.publishJob(imjob)
 
-		ivjob := m.PublishJob(&golang.JobResult{Id: fmt.Sprintf("volume_%s_metrics", *instance.InstanceId), Description: fmt.Sprintf("getting volume metrics of %s", *instance.InstanceId)})
+		ivjob := m.publishJob(&golang.JobResult{Id: fmt.Sprintf("volume_%s_metrics", *instance.InstanceId), Description: fmt.Sprintf("getting volume metrics of %s", *instance.InstanceId)})
 		ivjob.Done = true
 
 		var volumeIDs []string
@@ -250,12 +251,12 @@ func (m *EC2InstanceProcessor) processRegion(region string) {
 			)
 			if err != nil {
 				ivjob.FailureMessage = err.Error()
-				m.PublishJob(ivjob)
+				m.publishJob(ivjob)
 				return
 			}
 			volumeMetrics[v] = volumeMetric
 		}
-		m.PublishJob(ivjob)
+		m.publishJob(ivjob)
 
 		oi := EC2InstanceItem{
 			Instance:            instance,
@@ -264,7 +265,7 @@ func (m *EC2InstanceProcessor) processRegion(region string) {
 			VolumeMetrics:       volumeMetrics,
 			Region:              region,
 			OptimizationLoading: true,
-			Preferences:         preferences2.DefaultPreferences(),
+			Preferences:         preferences.DefaultPreferences(),
 		}
 		if instance.State.Name != types.InstanceStateNameRunning ||
 			instance.InstanceLifecycle == types.InstanceLifecycleTypeSpot ||
@@ -284,7 +285,7 @@ func (m *EC2InstanceProcessor) processRegion(region string) {
 			}
 		}
 		m.items[*oi.Instance.InstanceId] = oi
-		m.PublishOptimizationItem(oi.ToOptimizationItem())
+		m.publishOptimizationItem(oi.ToOptimizationItem())
 		if !oi.Skipped {
 			m.processWastageChan <- oi
 		}
@@ -300,27 +301,27 @@ func (m *EC2InstanceProcessor) processWastages() {
 func (m *EC2InstanceProcessor) wastageWorker(item EC2InstanceItem) {
 	defer func() {
 		if r := recover(); r != nil {
-			m.PublishError(fmt.Errorf("%v", r))
+			m.publishError(fmt.Errorf("%v", r))
 		}
 	}()
 
-	job := m.PublishJob(&golang.JobResult{Id: fmt.Sprintf("wastage_%s", *item.Instance.InstanceId), Description: fmt.Sprintf("Evaluating usage data for %s", *item.Instance.InstanceId)})
+	job := m.publishJob(&golang.JobResult{Id: fmt.Sprintf("wastage_%s", *item.Instance.InstanceId), Description: fmt.Sprintf("Evaluating usage data for %s", *item.Instance.InstanceId)})
 	job.Done = true
 
 	var monitoring *types.MonitoringState
 	if item.Instance.Monitoring != nil {
 		monitoring = &item.Instance.Monitoring.State
 	}
-	var placement *wastage.EC2Placement
+	var placement *kaytu2.EC2Placement
 	if item.Instance.Placement != nil {
-		placement = &wastage.EC2Placement{
+		placement = &kaytu2.EC2Placement{
 			Tenancy: item.Instance.Placement.Tenancy,
 		}
 		if item.Instance.Placement.AvailabilityZone != nil {
 			placement.AvailabilityZone = *item.Instance.Placement.AvailabilityZone
 		}
 		if item.Instance.Placement.HostId != nil {
-			placement.HashedHostId = hash.HashString(*item.Instance.Placement.HostId)
+			placement.HashedHostId = utils.HashString(*item.Instance.Placement.HostId)
 		}
 	}
 	platform := ""
@@ -328,15 +329,15 @@ func (m *EC2InstanceProcessor) wastageWorker(item EC2InstanceItem) {
 		platform = *item.Instance.PlatformDetails
 	}
 
-	var volumes []wastage.EC2Volume
+	var volumes []kaytu2.EC2Volume
 	for _, v := range item.Volumes {
 		volumes = append(volumes, toEBSVolume(v))
 	}
 
-	res, err := wastage.Ec2InstanceWastageRequest(wastage.EC2InstanceWastageRequest{
+	res, err := kaytu2.Ec2InstanceWastageRequest(kaytu2.EC2InstanceWastageRequest{
 		Identification: m.identification,
-		Instance: wastage.EC2Instance{
-			HashedInstanceId:  hash.HashString(*item.Instance.InstanceId),
+		Instance: kaytu2.EC2Instance{
+			HashedInstanceId:  utils.HashString(*item.Instance.InstanceId),
 			State:             item.Instance.State.Name,
 			InstanceType:      item.Instance.InstanceType,
 			Platform:          platform,
@@ -353,24 +354,23 @@ func (m *EC2InstanceProcessor) wastageWorker(item EC2InstanceItem) {
 		Metrics:       item.Metrics,
 		VolumeMetrics: item.VolumeMetrics,
 		Region:        item.Region,
-		Preferences:   preferences2.Export(item.Preferences),
-	})
+		Preferences:   preferences.Export(item.Preferences),
+	}, m.kaytuAcccessToken)
 	if err != nil {
 		if strings.Contains(err.Error(), "please login") {
-			fmt.Println(err.Error())
-			os.Exit(1)
+			m.publishError(err)
 			return
 		}
 		job.FailureMessage = err.Error()
-		m.PublishJob(job)
+		m.publishJob(job)
 		return
 	}
-	m.PublishJob(job)
+	m.publishJob(job)
 
 	if res.RightSizing.Current.InstanceType == "" {
 		item.OptimizationLoading = false
 		m.items[*item.Instance.InstanceId] = item
-		m.PublishOptimizationItem(item.ToOptimizationItem())
+		m.publishOptimizationItem(item.ToOptimizationItem())
 		return
 	}
 
@@ -387,7 +387,7 @@ func (m *EC2InstanceProcessor) wastageWorker(item EC2InstanceItem) {
 		Wastage:             *res,
 	}
 	m.items[*item.Instance.InstanceId] = item
-	m.PublishOptimizationItem(item.ToOptimizationItem())
+	m.publishOptimizationItem(item.ToOptimizationItem())
 }
 
 func (m *EC2InstanceProcessor) ReEvaluate(id string, items []*golang.PreferenceItem) {
@@ -397,14 +397,14 @@ func (m *EC2InstanceProcessor) ReEvaluate(id string, items []*golang.PreferenceI
 	m.processWastageChan <- m.items[id]
 }
 
-func toEBSVolume(v types.Volume) wastage.EC2Volume {
+func toEBSVolume(v types.Volume) kaytu2.EC2Volume {
 	var throughput *float64
 	if v.Throughput != nil {
 		throughput = aws.Float64(float64(*v.Throughput))
 	}
 
-	return wastage.EC2Volume{
-		HashedVolumeId:   hash.HashString(*v.VolumeId),
+	return kaytu2.EC2Volume{
+		HashedVolumeId:   utils.HashString(*v.VolumeId),
 		VolumeType:       v.VolumeType,
 		Size:             v.Size,
 		Iops:             v.Iops,

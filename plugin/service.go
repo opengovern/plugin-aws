@@ -45,19 +45,19 @@ func (p *AWSPlugin) SetStream(stream golang.Plugin_RegisterClient) {
 	p.stream = stream
 }
 
-func (p *AWSPlugin) StartProcess(flags map[string]string) error {
+func (p *AWSPlugin) StartProcess(flags map[string]string, kaytuAccessToken string) error {
 	profile := flags["profile"]
 	cfg, err := awsConfig.GetConfig(context.Background(), "", "", "", "", &profile, nil)
 	if err != nil {
 		return err
 	}
 
-	awsPrv, err := NewAWS(cfg)
+	awsPrv, err := awsConfig.NewAWS(cfg)
 	if err != nil {
 		return err
 	}
 
-	cloudWatch, err := NewCloudWatch(cfg)
+	cloudWatch, err := awsConfig.NewCloudWatch(cfg)
 	if err != nil {
 		return err
 	}
@@ -101,6 +101,7 @@ func (p *AWSPlugin) StartProcess(flags map[string]string) error {
 		publishJobResult,
 		publishError,
 		publishOptimizationItem,
+		kaytuAccessToken,
 	)
 
 	return nil
