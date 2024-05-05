@@ -7,6 +7,8 @@ import (
 	awsConfig "github.com/kaytu-io/plugin-aws/plugin/aws"
 )
 
+var VERSION string
+
 type AWSPlugin struct {
 	cfg       aws.Config
 	stream    golang.Plugin_RegisterClient
@@ -20,7 +22,7 @@ func NewPlugin() (*AWSPlugin, error) {
 func (p *AWSPlugin) GetConfig() golang.RegisterConfig {
 	return golang.RegisterConfig{
 		Name:     "aws",
-		Version:  "v0.0.1",
+		Version:  VERSION,
 		Provider: "aws",
 		Commands: []*golang.Command{
 			{
