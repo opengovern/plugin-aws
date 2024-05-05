@@ -107,7 +107,7 @@ func (m *EC2InstanceProcessor) processRegion(region string) {
 			Instance:            instance,
 			Region:              region,
 			OptimizationLoading: true,
-			Preferences:         preferences2.DefaultPreferences,
+			Preferences:         preferences2.DefaultEC2Preferences,
 		}
 
 		isAutoScaling := false
@@ -268,7 +268,7 @@ func (m *EC2InstanceProcessor) processRegion(region string) {
 			VolumeMetrics:       volumeMetrics,
 			Region:              region,
 			OptimizationLoading: true,
-			Preferences:         preferences2.DefaultPreferences,
+			Preferences:         preferences2.DefaultEC2Preferences,
 		}
 		if instance.State.Name != types.InstanceStateNameRunning ||
 			instance.InstanceLifecycle == types.InstanceLifecycleTypeSpot ||

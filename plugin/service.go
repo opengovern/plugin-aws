@@ -38,6 +38,7 @@ func (p *AWSPlugin) GetConfig() golang.RegisterConfig {
 						Required:    false,
 					},
 				},
+				DefaultPreferences: preferences.DefaultEC2Preferences,
 			},
 			{
 				Name:        "rds-instance",
@@ -50,9 +51,9 @@ func (p *AWSPlugin) GetConfig() golang.RegisterConfig {
 						Required:    false,
 					},
 				},
+				DefaultPreferences: preferences.DefaultRDSPreferences,
 			},
 		},
-		DefaultPreferences: preferences.DefaultPreferences,
 	}
 }
 

@@ -109,7 +109,7 @@ func (m *RDSInstanceProcessor) ProcessRegion(region string) {
 			Instance:            instance,
 			Region:              region,
 			OptimizationLoading: true,
-			Preferences:         preferences2.DefaultPreferences,
+			Preferences:         preferences2.DefaultRDSPreferences,
 		}
 
 		// just to show the loading
@@ -162,7 +162,7 @@ func (m *RDSInstanceProcessor) ProcessRegion(region string) {
 			Metrics:             instanceMetrics,
 			Region:              region,
 			OptimizationLoading: true,
-			Preferences:         preferences2.DefaultPreferences,
+			Preferences:         preferences2.DefaultRDSPreferences,
 		}
 
 		m.items[*oi.Instance.DBInstanceIdentifier] = oi

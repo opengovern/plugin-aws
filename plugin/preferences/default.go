@@ -5,7 +5,7 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
-var DefaultPreferences = []*golang.PreferenceItem{
+var DefaultEC2Preferences = []*golang.PreferenceItem{
 	{Service: "EC2Instance", Key: "Tenancy", Pinned: true, PossibleValues: []string{"", "Host", "Shared", "Dedicated"}},
 	{Service: "EC2Instance", Key: "EBSOptimized", PossibleValues: []string{"", "Yes", "No"}},
 	{Service: "EC2Instance", Key: "LicenseModel", PossibleValues: []string{"", "Bring your own license", "No License required"}},
@@ -34,6 +34,9 @@ var DefaultPreferences = []*golang.PreferenceItem{
 	{Service: "EBSVolume", Key: "VolumeType", PossibleValues: []string{"", "standard", "io1", "io2", "gp2", "gp3", "sc1", "st1"}},
 	{Service: "EBSVolume", Key: "IOPSBreathingRoom", IsNumber: true, Value: wrapperspb.String("10"), PreventPinning: true, Unit: "%"},
 	{Service: "EBSVolume", Key: "ThroughputBreathingRoom", IsNumber: true, Value: wrapperspb.String("10"), PreventPinning: true, Unit: "%"},
+}
+
+var DefaultRDSPreferences = []*golang.PreferenceItem{
 	{Service: "RDSInstance", Key: "NetworkThroughput", IsNumber: true, Pinned: true, Unit: "Mbps"},
 	{Service: "RDSInstance", Key: "MemoryGB", IsNumber: true, Pinned: true, Unit: "GiB"},
 	{Service: "RDSInstance", Key: "vCPU", IsNumber: true, Pinned: true},
