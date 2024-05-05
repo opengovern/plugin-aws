@@ -10,7 +10,7 @@ checksum: {}
 
 builds:
   - id: linux
-    binary: kaytu
+    binary: plugin
     ldflags:
       - -s -w -X github.com/kaytu-io/plugin-aws/cmd/predef.VERSION={{ .Version }}
     goos:
@@ -20,7 +20,7 @@ builds:
       - arm64
     main: ./main.go
   - id: darwin
-    binary: kaytu
+    binary: plugin
     ldflags:
       - -s -w -X github.com/kaytu-io/plugin-aws/cmd/predef.VERSION={{ .Version }}
     goos:
@@ -30,7 +30,7 @@ builds:
       - arm64
     main: ./main.go
   - id: windows
-    binary: kaytu
+    binary: plugin
     ldflags:
       - -s -w -X github.com/kaytu-io/plugin-aws/cmd/predef.VERSION={{ .Version }}
     goos:
