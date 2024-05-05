@@ -95,7 +95,7 @@ func (i RDSInstanceItem) RDSInstanceDevice() *golang.Device {
 		memoryProperty.Recommended = fmt.Sprintf("%d GiB", i.Wastage.RightSizing.Recommended.MemoryGb)
 		storageTypeProperty.Recommended = utils.PString(i.Wastage.RightSizing.Recommended.StorageType)
 		storageSizeProperty.Recommended = utils.SizeByteToGB(i.Wastage.RightSizing.Recommended.StorageSize)
-		storageIOPSProperty.Recommended = fmt.Sprintf("%d", i.Wastage.RightSizing.Recommended.StorageIops)
+		storageIOPSProperty.Recommended = fmt.Sprintf("%s io/s", utils.PInt32ToString(i.Wastage.RightSizing.Recommended.StorageIops))
 		storageThroughputProperty.Recommended = utils.PStorageThroughputMbps(i.Wastage.RightSizing.Recommended.StorageThroughput)
 	}
 	ec2Instance.Properties = append(ec2Instance.Properties, regionProperty)
