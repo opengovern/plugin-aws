@@ -4,7 +4,7 @@ project_name: kaytu
 release:
   github:
     owner: kaytu-io
-    name: kaytu
+    name: plugin-aws
 
 checksum: {}
 
