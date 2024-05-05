@@ -1,15 +1,17 @@
-package plugin
+package processor
 
 import (
 	"fmt"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	types2 "github.com/aws/aws-sdk-go-v2/service/cloudwatch/types"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
+	"github.com/google/uuid"
 	"github.com/kaytu-io/kaytu/pkg/plugin/proto/src/golang"
 	"github.com/kaytu-io/kaytu/pkg/utils"
 	"github.com/kaytu-io/kaytu/preferences"
 	aws2 "github.com/kaytu-io/plugin-aws/plugin/aws"
 	kaytu2 "github.com/kaytu-io/plugin-aws/plugin/kaytu"
+	"github.com/kaytu-io/plugin-aws/plugin/version"
 	"strings"
 	"sync"
 	"time"
@@ -335,6 +337,8 @@ func (m *EC2InstanceProcessor) wastageWorker(item EC2InstanceItem) {
 	}
 
 	res, err := kaytu2.Ec2InstanceWastageRequest(kaytu2.EC2InstanceWastageRequest{
+		RequestId:      uuid.New().String(),
+		CliVersion:     version.VERSION,
 		Identification: m.identification,
 		Instance: kaytu2.EC2Instance{
 			HashedInstanceId:  utils.HashString(*item.Instance.InstanceId),

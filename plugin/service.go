@@ -2,17 +2,18 @@ package plugin
 
 import (
 	"context"
+	"fmt"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/kaytu-io/kaytu/pkg/plugin/proto/src/golang"
 	awsConfig "github.com/kaytu-io/plugin-aws/plugin/aws"
+	processor2 "github.com/kaytu-io/plugin-aws/plugin/processor"
+	"github.com/kaytu-io/plugin-aws/plugin/version"
 )
-
-var VERSION string
 
 type AWSPlugin struct {
 	cfg       aws.Config
 	stream    golang.Plugin_RegisterClient
-	processor *EC2InstanceProcessor
+	processor processor2.Processor
 }
 
 func NewPlugin() (*AWSPlugin, error) {
@@ -22,12 +23,24 @@ func NewPlugin() (*AWSPlugin, error) {
 func (p *AWSPlugin) GetConfig() golang.RegisterConfig {
 	return golang.RegisterConfig{
 		Name:     "aws",
-		Version:  VERSION,
+		Version:  version.VERSION,
 		Provider: "aws",
 		Commands: []*golang.Command{
 			{
 				Name:        "ec2-instance",
 				Description: "Optimize your AWS EC2 Instances",
+				Flags: []*golang.Flag{
+					{
+						Name:        "profile",
+						Default:     "",
+						Description: "AWS profile for authentication",
+						Required:    false,
+					},
+				},
+			},
+			{
+				Name:        "rds-instance",
+				Description: "Optimize your AWS RDS Instances",
 				Flags: []*golang.Flag{
 					{
 						Name:        "profile",
@@ -45,7 +58,7 @@ func (p *AWSPlugin) SetStream(stream golang.Plugin_RegisterClient) {
 	p.stream = stream
 }
 
-func (p *AWSPlugin) StartProcess(flags map[string]string, kaytuAccessToken string) error {
+func (p *AWSPlugin) StartProcess(command string, flags map[string]string, kaytuAccessToken string) error {
 	profile := flags["profile"]
 	cfg, err := awsConfig.GetConfig(context.Background(), "", "", "", "", &profile, nil)
 	if err != nil {
@@ -94,15 +107,29 @@ func (p *AWSPlugin) StartProcess(flags map[string]string, kaytuAccessToken strin
 		})
 	}
 
-	p.processor = NewEC2InstanceProcessor(
-		awsPrv,
-		cloudWatch,
-		identification,
-		publishJobResult,
-		publishError,
-		publishOptimizationItem,
-		kaytuAccessToken,
-	)
+	if command == "ec2-instance" {
+		p.processor = processor2.NewEC2InstanceProcessor(
+			awsPrv,
+			cloudWatch,
+			identification,
+			publishJobResult,
+			publishError,
+			publishOptimizationItem,
+			kaytuAccessToken,
+		)
+	} else if command == "rds-instance" {
+		p.processor = processor2.NewRDSInstanceProcessor(
+			awsPrv,
+			cloudWatch,
+			identification,
+			publishJobResult,
+			publishError,
+			publishOptimizationItem,
+			kaytuAccessToken,
+		)
+	} else {
+		return fmt.Errorf("invalid command: %s", command)
+	}
 
 	return nil
 }

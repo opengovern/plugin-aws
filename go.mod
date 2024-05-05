@@ -11,7 +11,8 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/organizations v1.27.3
 	github.com/aws/aws-sdk-go-v2/service/rds v1.78.0
 	github.com/aws/aws-sdk-go-v2/service/sts v1.28.6
-	github.com/kaytu-io/kaytu v0.5.5-0.20240505143902-b03b96f32c22
+	github.com/google/uuid v1.6.0
+	github.com/kaytu-io/kaytu v0.5.5-0.20240505151039-0fc48a10dc9a
 	golang.org/x/net v0.24.0
 )
 
