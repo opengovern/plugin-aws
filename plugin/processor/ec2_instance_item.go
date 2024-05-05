@@ -5,7 +5,6 @@ import (
 	types2 "github.com/aws/aws-sdk-go-v2/service/cloudwatch/types"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/kaytu-io/kaytu/pkg/plugin/proto/src/golang"
-	"github.com/kaytu-io/kaytu/pkg/style"
 	"github.com/kaytu-io/kaytu/pkg/utils"
 	"github.com/kaytu-io/plugin-aws/plugin/kaytu"
 	"strings"
@@ -33,11 +32,11 @@ func (i EC2InstanceItem) EC2InstanceDevice() *golang.Device {
 		CurrentCost:  i.Wastage.RightSizing.Current.Cost,
 	}
 	regionProperty := &golang.Property{
-		Key:     style.Bold.Render("Region"),
+		Key:     "Region",
 		Current: i.Wastage.RightSizing.Current.Region,
 	}
 	instanceSizeProperty := &golang.Property{
-		Key:     style.Bold.Render("Instance Size"),
+		Key:     "Instance Size",
 		Current: i.Wastage.RightSizing.Current.InstanceType,
 	}
 	vCPUProperty := &golang.Property{
@@ -104,7 +103,7 @@ func (i EC2InstanceItem) EC2InstanceDevice() *golang.Device {
 	ec2Instance.Properties = append(ec2Instance.Properties, regionProperty)
 	ec2Instance.Properties = append(ec2Instance.Properties, instanceSizeProperty)
 	ec2Instance.Properties = append(ec2Instance.Properties, &golang.Property{
-		Key: style.Bold.Render("Compute"),
+		Key: "Compute",
 	})
 	ec2Instance.Properties = append(ec2Instance.Properties, vCPUProperty)
 	ec2Instance.Properties = append(ec2Instance.Properties, processorProperty)
@@ -114,7 +113,7 @@ func (i EC2InstanceItem) EC2InstanceDevice() *golang.Device {
 	ec2Instance.Properties = append(ec2Instance.Properties, ebsProperty)
 	ec2Instance.Properties = append(ec2Instance.Properties, iopsProperty)
 	ec2Instance.Properties = append(ec2Instance.Properties, &golang.Property{
-		Key: style.Bold.Render("Network Performance"),
+		Key: "Network Performance",
 	})
 	ec2Instance.Properties = append(ec2Instance.Properties, netThroughputProperty)
 	ec2Instance.Properties = append(ec2Instance.Properties, enaProperty)
@@ -139,7 +138,7 @@ func (i EC2InstanceItem) EBSVolumeDevice(v types.Volume, vs kaytu.EBSVolumeRecom
 		Current: utils.SizeByteToGB(vs.Current.VolumeSize),
 	}
 	iopsProp := &golang.Property{
-		Key:     style.Bold.Render("IOPS"),
+		Key:     "IOPS",
 		Current: fmt.Sprintf("%d", vs.Current.IOPS()),
 		Average: utils.PFloat64ToString(vs.IOPS.Avg),
 		Max:     utils.PFloat64ToString(vs.IOPS.Max),
@@ -153,7 +152,7 @@ func (i EC2InstanceItem) EBSVolumeDevice(v types.Volume, vs kaytu.EBSVolumeRecom
 		Current: utils.PInt32ToString(vs.Current.ProvisionedIOPS),
 	}
 	throughputProp := &golang.Property{
-		Key:     style.Bold.Render("Throughput (MB/s)"),
+		Key:     "Throughput (MB/s)",
 		Current: fmt.Sprintf("%.2f", vs.Current.Throughput()),
 		Average: utils.PNetworkThroughputMbps(vs.Throughput.Avg),
 		Max:     utils.PNetworkThroughputMbps(vs.Throughput.Max),

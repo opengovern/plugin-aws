@@ -5,7 +5,6 @@ import (
 	types2 "github.com/aws/aws-sdk-go-v2/service/cloudwatch/types"
 	"github.com/aws/aws-sdk-go-v2/service/rds/types"
 	"github.com/kaytu-io/kaytu/pkg/plugin/proto/src/golang"
-	"github.com/kaytu-io/kaytu/pkg/style"
 	"github.com/kaytu-io/kaytu/pkg/utils"
 	"github.com/kaytu-io/plugin-aws/plugin/kaytu"
 )
@@ -31,23 +30,23 @@ func (i RDSInstanceItem) RDSInstanceDevice() *golang.Device {
 		CurrentCost:  i.Wastage.RightSizing.Current.Cost,
 	}
 	regionProperty := &golang.Property{
-		Key:     style.Bold.Render("Region"),
+		Key:     "Region",
 		Current: i.Wastage.RightSizing.Current.Region,
 	}
 	instanceSizeProperty := &golang.Property{
-		Key:     style.Bold.Render("Instance Size"),
+		Key:     "Instance Size",
 		Current: i.Wastage.RightSizing.Current.InstanceType,
 	}
 	engineProperty := &golang.Property{
-		Key:     style.Bold.Render("Engine"),
+		Key:     "Engine",
 		Current: i.Wastage.RightSizing.Current.Engine,
 	}
 	engineVerProperty := &golang.Property{
-		Key:     style.Bold.Render("Engine Version"),
+		Key:     "Engine Version",
 		Current: i.Wastage.RightSizing.Current.EngineVersion,
 	}
 	clusterTypeProperty := &golang.Property{
-		Key:     style.Bold.Render("Cluster Type"),
+		Key:     "Cluster Type",
 		Current: string(i.Wastage.RightSizing.Current.ClusterType),
 	}
 	vCPUProperty := &golang.Property{
@@ -105,12 +104,12 @@ func (i RDSInstanceItem) RDSInstanceDevice() *golang.Device {
 	ec2Instance.Properties = append(ec2Instance.Properties, engineVerProperty)
 	ec2Instance.Properties = append(ec2Instance.Properties, clusterTypeProperty)
 	ec2Instance.Properties = append(ec2Instance.Properties, &golang.Property{
-		Key: style.Bold.Render("Compute"),
+		Key: "Compute",
 	})
 	ec2Instance.Properties = append(ec2Instance.Properties, vCPUProperty)
 	ec2Instance.Properties = append(ec2Instance.Properties, memoryProperty)
 	ec2Instance.Properties = append(ec2Instance.Properties, &golang.Property{
-		Key: style.Bold.Render("Storage"),
+		Key: "Storage",
 	})
 	ec2Instance.Properties = append(ec2Instance.Properties, storageTypeProperty)
 	ec2Instance.Properties = append(ec2Instance.Properties, storageSizeProperty)
