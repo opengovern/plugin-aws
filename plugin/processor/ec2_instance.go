@@ -50,7 +50,9 @@ func NewEC2InstanceProcessor(
 		publishError:            publishError,
 		kaytuAcccessToken:       kaytuAcccessToken,
 	}
-	go r.processWastages()
+	for i := 0; i < 4; i++ {
+		go r.processWastages()
+	}
 	go r.processAllRegions()
 	return r
 }
@@ -297,7 +299,7 @@ func (m *EC2InstanceProcessor) processRegion(region string) {
 
 func (m *EC2InstanceProcessor) processWastages() {
 	for item := range m.processWastageChan {
-		go m.wastageWorker(item)
+		m.wastageWorker(item)
 	}
 }
 

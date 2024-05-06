@@ -6,10 +6,5 @@ import (
 )
 
 func main() {
-	plg, err := plugin.NewPlugin()
-	if err != nil {
-		panic(err)
-	}
-
-	sdk.New(plg).Execute()
+	sdk.New(plugin.NewPlugin()).Execute()
 }

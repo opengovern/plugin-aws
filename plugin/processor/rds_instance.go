@@ -52,7 +52,9 @@ func NewRDSInstanceProcessor(
 		publishOptimizationItem: publishOptimizationItem,
 		kaytuAcccessToken:       kaytuAcccessToken,
 	}
-	go r.ProcessWastages()
+	for i := 0; i < 4; i++ {
+		go r.ProcessWastages()
+	}
 	go r.ProcessAllRegions()
 	return r
 }
@@ -175,7 +177,7 @@ func (m *RDSInstanceProcessor) ProcessRegion(region string) {
 
 func (m *RDSInstanceProcessor) ProcessWastages() {
 	for item := range m.processWastageChan {
-		go m.WastageWorker(item)
+		m.WastageWorker(item)
 	}
 }
 

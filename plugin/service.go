@@ -17,8 +17,8 @@ type AWSPlugin struct {
 	processor processor2.Processor
 }
 
-func NewPlugin() (*AWSPlugin, error) {
-	return &AWSPlugin{}, nil
+func NewPlugin() *AWSPlugin {
+	return &AWSPlugin{}
 }
 
 func (p *AWSPlugin) GetConfig() golang.RegisterConfig {
