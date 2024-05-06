@@ -82,6 +82,11 @@ func (i RDSInstanceItem) RDSInstanceDevice() *golang.Device {
 	} else {
 		storageIOPSProperty.Current = "N/A"
 	}
+	// current number is in MB/s, so we need to convert it to bytes/s so matches the other values
+	if i.Wastage.RightSizing.Current.StorageThroughput != nil {
+		v := *i.Wastage.RightSizing.Current.StorageThroughput * 1024.0 * 1024.0
+		i.Wastage.RightSizing.Current.StorageThroughput = &v
+	}
 	storageThroughputProperty := &golang.Property{
 		Key:     "  Throughput",
 		Current: utils.PStorageThroughputMbps(i.Wastage.RightSizing.Current.StorageThroughput),
@@ -105,6 +110,11 @@ func (i RDSInstanceItem) RDSInstanceDevice() *golang.Device {
 			storageIOPSProperty.Recommended = fmt.Sprintf("%s io/s", storageIOPSProperty.Recommended)
 		} else {
 			storageIOPSProperty.Recommended = "N/A"
+		}
+		// Recommended number is in MB/s, so we need to convert it to bytes/s so matches the other values
+		if i.Wastage.RightSizing.Recommended.StorageThroughput != nil {
+			v := *i.Wastage.RightSizing.Recommended.StorageThroughput * 1024.0 * 1024.0
+			i.Wastage.RightSizing.Recommended.StorageThroughput = &v
 		}
 		storageThroughputProperty.Recommended = utils.PStorageThroughputMbps(i.Wastage.RightSizing.Recommended.StorageThroughput)
 	}
