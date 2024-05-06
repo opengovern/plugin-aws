@@ -73,9 +73,14 @@ func (i RDSInstanceItem) RDSInstanceDevice() *golang.Device {
 	}
 	storageIOPSProperty := &golang.Property{
 		Key:     "  IOPS",
-		Current: fmt.Sprintf("%d", i.Wastage.RightSizing.Current.StorageIops),
+		Current: utils.PInt32ToString(i.Wastage.RightSizing.Current.StorageIops),
 		Average: fmt.Sprintf("%s io/s", utils.PFloat64ToString(i.Wastage.RightSizing.StorageIops.Avg)),
 		Max:     fmt.Sprintf("%s io/s", utils.PFloat64ToString(i.Wastage.RightSizing.StorageIops.Max)),
+	}
+	if storageIOPSProperty.Current != "" {
+		storageIOPSProperty.Current = fmt.Sprintf("%s io/s", storageIOPSProperty.Current)
+	} else {
+		storageIOPSProperty.Current = "N/A"
 	}
 	storageThroughputProperty := &golang.Property{
 		Key:     "  Throughput",
