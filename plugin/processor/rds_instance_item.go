@@ -15,6 +15,7 @@ type RDSInstanceItem struct {
 	OptimizationLoading bool
 	Preferences         []*golang.PreferenceItem
 	Skipped             bool
+	LazyLoadingEnabled  bool
 	SkipReason          string
 
 	Metrics map[string][]types2.Datapoint
@@ -145,15 +146,16 @@ func (i RDSInstanceItem) Devices() []*golang.Device {
 
 func (i RDSInstanceItem) ToOptimizationItem() *golang.OptimizationItem {
 	oi := &golang.OptimizationItem{
-		Id:           *i.Instance.DBInstanceIdentifier,
-		ResourceType: *i.Instance.DBInstanceClass,
-		Region:       i.Region,
-		Devices:      i.Devices(),
-		Preferences:  i.Preferences,
-		Description:  i.Wastage.RightSizing.Description,
-		Loading:      i.OptimizationLoading,
-		Skipped:      i.Skipped,
-		SkipReason:   i.SkipReason,
+		Id:                 *i.Instance.DBInstanceIdentifier,
+		ResourceType:       *i.Instance.DBInstanceClass,
+		Region:             i.Region,
+		Devices:            i.Devices(),
+		Preferences:        i.Preferences,
+		Description:        i.Wastage.RightSizing.Description,
+		Loading:            i.OptimizationLoading,
+		Skipped:            i.Skipped,
+		SkipReason:         i.SkipReason,
+		LazyLoadingEnabled: i.LazyLoadingEnabled,
 	}
 
 	//if i.Instance.PlatformDetails != nil {

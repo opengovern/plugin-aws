@@ -18,6 +18,8 @@ import (
 	"time"
 )
 
+const MaxRDSInstanceWithoutLazyLoading = 1
+
 type RDSInstanceProcessor struct {
 	provider       *aws.AWS
 	metricProvider *aws.CloudWatch
@@ -30,6 +32,9 @@ type RDSInstanceProcessor struct {
 	publishError            func(error)
 	publishOptimizationItem func(item *golang.OptimizationItem)
 	kaytuAcccessToken       string
+
+	lazyLoadCounter int
+	lazyLoadMutex   sync.RWMutex
 }
 
 func NewRDSInstanceProcessor(
@@ -111,7 +116,17 @@ func (m *RDSInstanceProcessor) ProcessRegion(region string) {
 			Instance:            instance,
 			Region:              region,
 			OptimizationLoading: true,
+			LazyLoadingEnabled:  false,
 			Preferences:         preferences2.DefaultRDSPreferences,
+		}
+
+		if !oi.Skipped {
+			m.lazyLoadMutex.Lock()
+			m.lazyLoadCounter++
+			if m.lazyLoadCounter > MaxRDSInstanceWithoutLazyLoading {
+				oi.LazyLoadingEnabled = true
+			}
+			m.lazyLoadMutex.Unlock()
 		}
 
 		// just to show the loading
@@ -120,61 +135,68 @@ func (m *RDSInstanceProcessor) ProcessRegion(region string) {
 	}
 
 	for _, instance := range instances {
-		imjob := m.publishJob(&golang.JobResult{Id: fmt.Sprintf("rds_instance_%s_metrics", *instance.DBInstanceIdentifier), Description: fmt.Sprintf("getting metrics of %s", *instance.DBInstanceIdentifier)})
-		imjob.Done = true
-		startTime := time.Now().Add(-24 * 7 * time.Hour)
-		endTime := time.Now()
-		instanceMetrics := map[string][]types2.Datapoint{}
-		cwMetrics, err := m.metricProvider.GetMetrics(
-			region,
-			"AWS/RDS",
-			[]string{
-				"CPUUtilization",
-				"FreeableMemory",
-				"FreeStorageSpace",
-				"NetworkReceiveThroughput",
-				"NetworkTransmitThroughput",
-				"ReadIOPS",
-				"ReadThroughput",
-				"WriteIOPS",
-				"WriteThroughput",
-			},
-			map[string][]string{
-				"DBInstanceIdentifier": {*instance.DBInstanceIdentifier},
-			},
-			startTime, endTime,
-			time.Hour,
-			[]types2.Statistic{
-				types2.StatisticAverage,
-				types2.StatisticMaximum,
-			},
-		)
-		if err != nil {
-			imjob.FailureMessage = err.Error()
-			m.publishJob(imjob)
-			return
-		}
-		for k, v := range cwMetrics {
-			instanceMetrics[k] = v
-		}
-		m.publishJob(imjob)
-
-		oi := RDSInstanceItem{
-			Instance:            instance,
-			Metrics:             instanceMetrics,
-			Region:              region,
-			OptimizationLoading: true,
-			Preferences:         preferences2.DefaultRDSPreferences,
+		if i, ok := m.items[*instance.DBInstanceIdentifier]; ok && i.LazyLoadingEnabled {
+			continue
 		}
 
-		m.items[*oi.Instance.DBInstanceIdentifier] = oi
-		m.publishOptimizationItem(oi.ToOptimizationItem())
-		if !oi.Skipped {
-			m.processWastageChan <- oi
-		}
+		m.processDBInstance(instance, region)
 	}
 }
+func (m *RDSInstanceProcessor) processDBInstance(instance types.DBInstance, region string) {
+	imjob := m.publishJob(&golang.JobResult{Id: fmt.Sprintf("rds_instance_%s_metrics", *instance.DBInstanceIdentifier), Description: fmt.Sprintf("getting metrics of %s", *instance.DBInstanceIdentifier)})
+	imjob.Done = true
+	startTime := time.Now().Add(-24 * 7 * time.Hour)
+	endTime := time.Now()
+	instanceMetrics := map[string][]types2.Datapoint{}
+	cwMetrics, err := m.metricProvider.GetMetrics(
+		region,
+		"AWS/RDS",
+		[]string{
+			"CPUUtilization",
+			"FreeableMemory",
+			"FreeStorageSpace",
+			"NetworkReceiveThroughput",
+			"NetworkTransmitThroughput",
+			"ReadIOPS",
+			"ReadThroughput",
+			"WriteIOPS",
+			"WriteThroughput",
+		},
+		map[string][]string{
+			"DBInstanceIdentifier": {*instance.DBInstanceIdentifier},
+		},
+		startTime, endTime,
+		time.Hour,
+		[]types2.Statistic{
+			types2.StatisticAverage,
+			types2.StatisticMaximum,
+		},
+	)
+	if err != nil {
+		imjob.FailureMessage = err.Error()
+		m.publishJob(imjob)
+		return
+	}
+	for k, v := range cwMetrics {
+		instanceMetrics[k] = v
+	}
+	m.publishJob(imjob)
 
+	oi := RDSInstanceItem{
+		Instance:            instance,
+		Metrics:             instanceMetrics,
+		Region:              region,
+		OptimizationLoading: true,
+		LazyLoadingEnabled:  false,
+		Preferences:         preferences2.DefaultRDSPreferences,
+	}
+
+	m.items[*oi.Instance.DBInstanceIdentifier] = oi
+	m.publishOptimizationItem(oi.ToOptimizationItem())
+	if !oi.Skipped && !oi.LazyLoadingEnabled {
+		m.processWastageChan <- oi
+	}
+}
 func (m *RDSInstanceProcessor) ProcessWastages() {
 	for item := range m.processWastageChan {
 		m.WastageWorker(item)
@@ -187,6 +209,10 @@ func (m *RDSInstanceProcessor) WastageWorker(item RDSInstanceItem) {
 			m.publishError(fmt.Errorf("%v", r))
 		}
 	}()
+
+	if item.LazyLoadingEnabled {
+		m.processDBInstance(item.Instance, item.Region)
+	}
 
 	job := m.publishJob(&golang.JobResult{Id: fmt.Sprintf("wastage_rds_%s", *item.Instance.DBInstanceIdentifier), Description: fmt.Sprintf("Evaluating RDS usage data for %s", *item.Instance.DBInstanceIdentifier)})
 	job.Done = true

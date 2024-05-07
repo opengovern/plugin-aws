@@ -16,6 +16,7 @@ type EC2InstanceItem struct {
 	OptimizationLoading bool
 	Preferences         []*golang.PreferenceItem
 	Skipped             bool
+	LazyLoadingEnabled  bool
 	SkipReason          string
 	Volumes             []types.Volume
 	Metrics             map[string][]types2.Datapoint
@@ -205,15 +206,16 @@ func (i EC2InstanceItem) Devices() []*golang.Device {
 
 func (i EC2InstanceItem) ToOptimizationItem() *golang.OptimizationItem {
 	oi := &golang.OptimizationItem{
-		Id:           *i.Instance.InstanceId,
-		ResourceType: string(i.Instance.InstanceType),
-		Region:       i.Region,
-		Devices:      i.Devices(),
-		Preferences:  i.Preferences,
-		Description:  i.Wastage.RightSizing.Description,
-		Loading:      i.OptimizationLoading,
-		Skipped:      i.Skipped,
-		SkipReason:   i.SkipReason,
+		Id:                 *i.Instance.InstanceId,
+		ResourceType:       string(i.Instance.InstanceType),
+		Region:             i.Region,
+		Devices:            i.Devices(),
+		Preferences:        i.Preferences,
+		Description:        i.Wastage.RightSizing.Description,
+		Loading:            i.OptimizationLoading,
+		Skipped:            i.Skipped,
+		SkipReason:         i.SkipReason,
+		LazyLoadingEnabled: i.LazyLoadingEnabled,
 	}
 
 	if i.Instance.PlatformDetails != nil {

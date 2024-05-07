@@ -18,6 +18,8 @@ import (
 	"time"
 )
 
+const MaxEC2InstanceWithoutLazyLoading = 3
+
 type EC2InstanceProcessor struct {
 	provider                *aws2.AWS
 	metricProvider          *aws2.CloudWatch
@@ -28,6 +30,9 @@ type EC2InstanceProcessor struct {
 	publishError            func(error)
 	publishOptimizationItem func(item *golang.OptimizationItem)
 	kaytuAcccessToken       string
+
+	lazyLoadCounter int
+	lazyLoadMutex   sync.RWMutex
 }
 
 func NewEC2InstanceProcessor(
@@ -109,6 +114,7 @@ func (m *EC2InstanceProcessor) processRegion(region string) {
 			Instance:            instance,
 			Region:              region,
 			OptimizationLoading: true,
+			LazyLoadingEnabled:  false,
 			Preferences:         preferences2.DefaultEC2Preferences,
 		}
 
@@ -134,6 +140,15 @@ func (m *EC2InstanceProcessor) processRegion(region string) {
 			if len(reason) > 0 {
 				oi.SkipReason = reason
 			}
+		}
+
+		if !oi.Skipped {
+			m.lazyLoadMutex.Lock()
+			m.lazyLoadCounter++
+			if m.lazyLoadCounter > MaxEC2InstanceWithoutLazyLoading {
+				oi.LazyLoadingEnabled = true
+			}
+			m.lazyLoadMutex.Unlock()
 		}
 
 		// just to show the loading
@@ -142,158 +157,168 @@ func (m *EC2InstanceProcessor) processRegion(region string) {
 	}
 
 	for _, instance := range instances {
-		isAutoScaling := false
-		for _, tag := range instance.Tags {
-			if *tag.Key == "aws:autoscaling:groupName" && tag.Value != nil && *tag.Value != "" {
-				isAutoScaling = true
-			}
-		}
-		if instance.State.Name != types.InstanceStateNameRunning ||
-			instance.InstanceLifecycle == types.InstanceLifecycleTypeSpot ||
-			isAutoScaling {
+		if i, ok := m.items[*instance.InstanceId]; ok && (i.LazyLoadingEnabled || !i.OptimizationLoading) {
 			continue
 		}
 
-		vjob := m.publishJob(&golang.JobResult{Id: fmt.Sprintf("volumes_%s", *instance.InstanceId), Description: fmt.Sprintf("getting volumes of %s", *instance.InstanceId)})
-		vjob.Done = true
+		//TODO-Saleh since we're doing these one by one if user runs the lazy loading item it gets re-run here as well because lazy loading enabled is false now.
+		m.processInstance(instance, region)
+	}
+}
 
-		volumes, err := m.provider.ListAttachedVolumes(region, instance)
-		if err != nil {
-			vjob.FailureMessage = err.Error()
-			m.publishJob(vjob)
-			return
+func (m *EC2InstanceProcessor) processInstance(instance types.Instance, region string) {
+	isAutoScaling := false
+	for _, tag := range instance.Tags {
+		if *tag.Key == "aws:autoscaling:groupName" && tag.Value != nil && *tag.Value != "" {
+			isAutoScaling = true
 		}
+	}
+	if instance.State.Name != types.InstanceStateNameRunning ||
+		instance.InstanceLifecycle == types.InstanceLifecycleTypeSpot ||
+		isAutoScaling {
+		return
+	}
+
+	vjob := m.publishJob(&golang.JobResult{Id: fmt.Sprintf("volumes_%s", *instance.InstanceId), Description: fmt.Sprintf("getting volumes of %s", *instance.InstanceId)})
+	vjob.Done = true
+
+	volumes, err := m.provider.ListAttachedVolumes(region, instance)
+	if err != nil {
+		vjob.FailureMessage = err.Error()
 		m.publishJob(vjob)
+		return
+	}
+	m.publishJob(vjob)
 
-		imjob := m.publishJob(&golang.JobResult{Id: fmt.Sprintf("instance_%s_metrics", *instance.InstanceId), Description: fmt.Sprintf("getting metrics of %s", *instance.InstanceId)})
-		imjob.Done = true
-		startTime := time.Now().Add(-24 * 7 * time.Hour)
-		endTime := time.Now()
-		instanceMetrics := map[string][]types2.Datapoint{}
-		cwMetrics, err := m.metricProvider.GetMetrics(
-			region,
-			"AWS/EC2",
-			[]string{
-				"CPUUtilization",
-				"NetworkIn",
-				"NetworkOut",
-			},
-			map[string][]string{
-				"InstanceId": {*instance.InstanceId},
-			},
-			startTime, endTime,
-			time.Hour,
-			[]types2.Statistic{
-				types2.StatisticAverage,
-				types2.StatisticMaximum,
-			},
-		)
-		if err != nil {
-			imjob.FailureMessage = err.Error()
-			m.publishJob(imjob)
-			return
-		}
-		for k, v := range cwMetrics {
-			instanceMetrics[k] = v
-		}
-
-		cwaMetrics, err := m.metricProvider.GetMetrics(
-			region,
-			"CWAgent",
-			[]string{
-				"mem_used_percent",
-			},
-			map[string][]string{
-				"InstanceId": {*instance.InstanceId},
-			},
-			startTime, endTime,
-			time.Hour,
-			[]types2.Statistic{
-				types2.StatisticAverage,
-				types2.StatisticMaximum,
-			},
-		)
-		if err != nil {
-			imjob.FailureMessage = err.Error()
-			m.publishJob(imjob)
-			return
-		}
-		for k, v := range cwaMetrics {
-			instanceMetrics[k] = v
-		}
+	imjob := m.publishJob(&golang.JobResult{Id: fmt.Sprintf("instance_%s_metrics", *instance.InstanceId), Description: fmt.Sprintf("getting metrics of %s", *instance.InstanceId)})
+	imjob.Done = true
+	startTime := time.Now().Add(-24 * 7 * time.Hour)
+	endTime := time.Now()
+	instanceMetrics := map[string][]types2.Datapoint{}
+	cwMetrics, err := m.metricProvider.GetMetrics(
+		region,
+		"AWS/EC2",
+		[]string{
+			"CPUUtilization",
+			"NetworkIn",
+			"NetworkOut",
+		},
+		map[string][]string{
+			"InstanceId": {*instance.InstanceId},
+		},
+		startTime, endTime,
+		time.Hour,
+		[]types2.Statistic{
+			types2.StatisticAverage,
+			types2.StatisticMaximum,
+		},
+	)
+	if err != nil {
+		imjob.FailureMessage = err.Error()
 		m.publishJob(imjob)
+		return
+	}
+	for k, v := range cwMetrics {
+		instanceMetrics[k] = v
+	}
 
-		ivjob := m.publishJob(&golang.JobResult{Id: fmt.Sprintf("volume_%s_metrics", *instance.InstanceId), Description: fmt.Sprintf("getting volume metrics of %s", *instance.InstanceId)})
-		ivjob.Done = true
+	cwaMetrics, err := m.metricProvider.GetMetrics(
+		region,
+		"CWAgent",
+		[]string{
+			"mem_used_percent",
+		},
+		map[string][]string{
+			"InstanceId": {*instance.InstanceId},
+		},
+		startTime, endTime,
+		time.Hour,
+		[]types2.Statistic{
+			types2.StatisticAverage,
+			types2.StatisticMaximum,
+		},
+	)
+	if err != nil {
+		imjob.FailureMessage = err.Error()
+		m.publishJob(imjob)
+		return
+	}
+	for k, v := range cwaMetrics {
+		instanceMetrics[k] = v
+	}
+	m.publishJob(imjob)
 
-		var volumeIDs []string
-		for _, v := range instance.BlockDeviceMappings {
-			if v.Ebs != nil {
-				volumeIDs = append(volumeIDs, *v.Ebs.VolumeId)
-			}
-		}
+	ivjob := m.publishJob(&golang.JobResult{Id: fmt.Sprintf("volume_%s_metrics", *instance.InstanceId), Description: fmt.Sprintf("getting volume metrics of %s", *instance.InstanceId)})
+	ivjob.Done = true
 
-		volumeMetrics := map[string]map[string][]types2.Datapoint{}
-		for _, v := range volumeIDs {
-			volumeMetric, err := m.metricProvider.GetMetrics(
-				region,
-				"AWS/EBS",
-				[]string{
-					"VolumeReadOps",
-					"VolumeWriteOps",
-					"VolumeReadBytes",
-					"VolumeWriteBytes",
-				},
-				map[string][]string{
-					"VolumeId": {v},
-				},
-				startTime, endTime,
-				time.Hour,
-				[]types2.Statistic{
-					types2.StatisticAverage,
-					types2.StatisticMaximum,
-				},
-			)
-			if err != nil {
-				ivjob.FailureMessage = err.Error()
-				m.publishJob(ivjob)
-				return
-			}
-			volumeMetrics[v] = volumeMetric
+	var volumeIDs []string
+	for _, v := range instance.BlockDeviceMappings {
+		if v.Ebs != nil {
+			volumeIDs = append(volumeIDs, *v.Ebs.VolumeId)
 		}
-		m.publishJob(ivjob)
+	}
 
-		oi := EC2InstanceItem{
-			Instance:            instance,
-			Volumes:             volumes,
-			Metrics:             instanceMetrics,
-			VolumeMetrics:       volumeMetrics,
-			Region:              region,
-			OptimizationLoading: true,
-			Preferences:         preferences2.DefaultEC2Preferences,
+	volumeMetrics := map[string]map[string][]types2.Datapoint{}
+	for _, v := range volumeIDs {
+		volumeMetric, err := m.metricProvider.GetMetrics(
+			region,
+			"AWS/EBS",
+			[]string{
+				"VolumeReadOps",
+				"VolumeWriteOps",
+				"VolumeReadBytes",
+				"VolumeWriteBytes",
+			},
+			map[string][]string{
+				"VolumeId": {v},
+			},
+			startTime, endTime,
+			time.Hour,
+			[]types2.Statistic{
+				types2.StatisticAverage,
+				types2.StatisticMaximum,
+			},
+		)
+		if err != nil {
+			ivjob.FailureMessage = err.Error()
+			m.publishJob(ivjob)
+			return
 		}
-		if instance.State.Name != types.InstanceStateNameRunning ||
-			instance.InstanceLifecycle == types.InstanceLifecycleTypeSpot ||
-			isAutoScaling {
-			oi.OptimizationLoading = false
-			oi.Skipped = true
-			reason := ""
-			if instance.State.Name != types.InstanceStateNameRunning {
-				reason = "not running"
-			} else if instance.InstanceLifecycle == types.InstanceLifecycleTypeSpot {
-				reason = "spot instance"
-			} else if isAutoScaling {
-				reason = "auto-scaling group instance"
-			}
-			if len(reason) > 0 {
-				oi.SkipReason = reason
-			}
+		volumeMetrics[v] = volumeMetric
+	}
+	m.publishJob(ivjob)
+
+	oi := EC2InstanceItem{
+		Instance:            instance,
+		Volumes:             volumes,
+		Metrics:             instanceMetrics,
+		VolumeMetrics:       volumeMetrics,
+		Region:              region,
+		OptimizationLoading: true,
+		LazyLoadingEnabled:  false,
+		Preferences:         preferences2.DefaultEC2Preferences,
+	}
+	if instance.State.Name != types.InstanceStateNameRunning ||
+		instance.InstanceLifecycle == types.InstanceLifecycleTypeSpot ||
+		isAutoScaling {
+		oi.OptimizationLoading = false
+		oi.Skipped = true
+		reason := ""
+		if instance.State.Name != types.InstanceStateNameRunning {
+			reason = "not running"
+		} else if instance.InstanceLifecycle == types.InstanceLifecycleTypeSpot {
+			reason = "spot instance"
+		} else if isAutoScaling {
+			reason = "auto-scaling group instance"
 		}
-		m.items[*oi.Instance.InstanceId] = oi
-		m.publishOptimizationItem(oi.ToOptimizationItem())
-		if !oi.Skipped {
-			m.processWastageChan <- oi
+		if len(reason) > 0 {
+			oi.SkipReason = reason
 		}
+	}
+	m.items[*oi.Instance.InstanceId] = oi
+	m.publishOptimizationItem(oi.ToOptimizationItem())
+	if !oi.Skipped && !oi.LazyLoadingEnabled {
+		m.processWastageChan <- oi
 	}
 }
 
@@ -309,6 +334,11 @@ func (m *EC2InstanceProcessor) wastageWorker(item EC2InstanceItem) {
 			m.publishError(fmt.Errorf("%v", r))
 		}
 	}()
+
+	if item.LazyLoadingEnabled {
+		m.processInstance(item.Instance, item.Region)
+		return
+	}
 
 	job := m.publishJob(&golang.JobResult{Id: fmt.Sprintf("wastage_%s", *item.Instance.InstanceId), Description: fmt.Sprintf("Evaluating usage data for %s", *item.Instance.InstanceId)})
 	job.Done = true
