@@ -284,7 +284,10 @@ func (m *EC2InstanceProcessor) processInstance(instance types.Instance, region s
 			m.publishJob(ivjob)
 			return
 		}
-		volumeMetrics[v] = volumeMetric
+
+		// Hash v
+		hashedId := utils.HashString(v)
+		volumeMetrics[hashedId] = volumeMetric
 	}
 	m.publishJob(ivjob)
 
