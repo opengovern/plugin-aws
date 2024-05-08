@@ -18,7 +18,7 @@ import (
 	"time"
 )
 
-const MaxRDSInstanceWithoutLazyLoading = 1
+const MaxRDSInstanceWithoutLazyLoading = 5
 
 type RDSInstanceProcessor struct {
 	provider       *aws.AWS
