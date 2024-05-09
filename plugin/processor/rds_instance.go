@@ -170,6 +170,7 @@ func (m *RDSInstanceProcessor) processDBInstance(instance types.DBInstance, regi
 		[]types2.Statistic{
 			types2.StatisticAverage,
 			types2.StatisticMaximum,
+			types2.StatisticMinimum,
 		},
 	)
 	if err != nil {
