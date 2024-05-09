@@ -31,7 +31,7 @@ type RDSInstanceProcessor struct {
 	publishJob              func(result *golang.JobResult) *golang.JobResult
 	publishError            func(error)
 	publishOptimizationItem func(item *golang.OptimizationItem)
-	publishResultsReady     func()
+	publishResultsReady     func(bool)
 	kaytuAcccessToken       string
 
 	processRegionJobsFinished map[string]bool
@@ -47,7 +47,7 @@ func NewRDSInstanceProcessor(
 	publishJob func(result *golang.JobResult) *golang.JobResult,
 	publishError func(error),
 	publishOptimizationItem func(item *golang.OptimizationItem),
-	publishResultsReady func(),
+	publishResultsReady func(bool),
 	kaytuAcccessToken string,
 ) *RDSInstanceProcessor {
 	r := &RDSInstanceProcessor{
@@ -225,19 +225,13 @@ func (m *RDSInstanceProcessor) SendResultsReadyMessage() {
 				break
 			}
 		}
-		if !ready {
-			continue
-		}
 		for _, i := range m.items {
 			if i.OptimizationLoading {
 				ready = false
 				break
 			}
 		}
-		if ready {
-			m.publishResultsReady()
-			return
-		}
+		m.publishResultsReady(ready)
 	}
 }
 
