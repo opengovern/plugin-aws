@@ -29,7 +29,10 @@ type RDSInstanceProcessor struct {
 	publishJob              func(result *golang.JobResult) *golang.JobResult
 	publishError            func(error)
 	publishOptimizationItem func(item *golang.OptimizationItem)
+	publishResultsReady     func()
 	kaytuAcccessToken       string
+
+	processRegionJobsFinished map[string]bool
 }
 
 func NewRDSInstanceProcessor(
@@ -39,23 +42,28 @@ func NewRDSInstanceProcessor(
 	publishJob func(result *golang.JobResult) *golang.JobResult,
 	publishError func(error),
 	publishOptimizationItem func(item *golang.OptimizationItem),
+	publishResultsReady func(),
 	kaytuAcccessToken string,
 ) *RDSInstanceProcessor {
 	r := &RDSInstanceProcessor{
-		provider:                provider,
-		metricProvider:          metricProvider,
-		identification:          identification,
-		processWastageChan:      make(chan RDSInstanceItem, 1000),
-		items:                   map[string]RDSInstanceItem{},
-		publishJob:              publishJob,
-		publishError:            publishError,
-		publishOptimizationItem: publishOptimizationItem,
-		kaytuAcccessToken:       kaytuAcccessToken,
+		provider:                  provider,
+		metricProvider:            metricProvider,
+		identification:            identification,
+		processWastageChan:        make(chan RDSInstanceItem, 1000),
+		items:                     map[string]RDSInstanceItem{},
+		publishJob:                publishJob,
+		publishError:              publishError,
+		publishOptimizationItem:   publishOptimizationItem,
+		publishResultsReady:       publishResultsReady,
+		kaytuAcccessToken:         kaytuAcccessToken,
+		processRegionJobsFinished: map[string]bool{},
 	}
 	for i := 0; i < 4; i++ {
 		go r.ProcessWastages()
 	}
 	go r.ProcessAllRegions()
+	r.processRegionJobsFinished["start"] = false
+	go r.SendResultsReadyMessage()
 	return r
 }
 
@@ -80,6 +88,8 @@ func (m *RDSInstanceProcessor) ProcessAllRegions() {
 	wg.Add(len(regions))
 	for _, region := range regions {
 		region := region
+		m.processRegionJobsFinished[region] = false
+		m.processRegionJobsFinished["start"] = true
 		go func() {
 			defer wg.Done()
 			m.ProcessRegion(region)
@@ -90,6 +100,7 @@ func (m *RDSInstanceProcessor) ProcessAllRegions() {
 
 func (m *RDSInstanceProcessor) ProcessRegion(region string) {
 	defer func() {
+		m.processRegionJobsFinished[region] = true
 		if r := recover(); r != nil {
 			m.publishError(fmt.Errorf("%v", r))
 		}
@@ -178,6 +189,32 @@ func (m *RDSInstanceProcessor) ProcessRegion(region string) {
 func (m *RDSInstanceProcessor) ProcessWastages() {
 	for item := range m.processWastageChan {
 		m.WastageWorker(item)
+	}
+}
+
+func (m *RDSInstanceProcessor) SendResultsReadyMessage() {
+	for {
+		ready := true
+		time.Sleep(time.Second)
+		for _, f := range m.processRegionJobsFinished {
+			if !f {
+				ready = false
+				break
+			}
+		}
+		if !ready {
+			continue
+		}
+		for _, i := range m.items {
+			if i.OptimizationLoading {
+				ready = false
+				break
+			}
+		}
+		if ready {
+			m.publishResultsReady()
+			return
+		}
 	}
 }
 

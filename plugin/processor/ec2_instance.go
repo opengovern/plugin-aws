@@ -27,7 +27,10 @@ type EC2InstanceProcessor struct {
 	publishJob              func(result *golang.JobResult) *golang.JobResult
 	publishError            func(error)
 	publishOptimizationItem func(item *golang.OptimizationItem)
+	publishResultsReady     func()
 	kaytuAcccessToken       string
+
+	processRegionJobsFinished map[string]bool
 }
 
 func NewEC2InstanceProcessor(
@@ -37,23 +40,27 @@ func NewEC2InstanceProcessor(
 	publishJob func(result *golang.JobResult) *golang.JobResult,
 	publishError func(error),
 	publishOptimizationItem func(item *golang.OptimizationItem),
+	publishResultsReady func(),
 	kaytuAcccessToken string,
 ) *EC2InstanceProcessor {
 	r := &EC2InstanceProcessor{
-		processWastageChan:      make(chan EC2InstanceItem, 1000),
-		provider:                prv,
-		metricProvider:          metric,
-		identification:          identification,
-		items:                   map[string]EC2InstanceItem{},
-		publishJob:              publishJob,
-		publishOptimizationItem: publishOptimizationItem,
-		publishError:            publishError,
-		kaytuAcccessToken:       kaytuAcccessToken,
+		processWastageChan:        make(chan EC2InstanceItem, 1000),
+		provider:                  prv,
+		metricProvider:            metric,
+		identification:            identification,
+		items:                     map[string]EC2InstanceItem{},
+		publishJob:                publishJob,
+		publishOptimizationItem:   publishOptimizationItem,
+		publishError:              publishError,
+		publishResultsReady:       publishResultsReady,
+		kaytuAcccessToken:         kaytuAcccessToken,
+		processRegionJobsFinished: map[string]bool{},
 	}
 	for i := 0; i < 4; i++ {
 		go r.processWastages()
 	}
 	go r.processAllRegions()
+	go r.SendResultsReadyMessage()
 	return r
 }
 
@@ -77,6 +84,7 @@ func (m *EC2InstanceProcessor) processAllRegions() {
 	wg := sync.WaitGroup{}
 	wg.Add(len(regions))
 	for _, region := range regions {
+		m.processRegionJobsFinished[region] = false
 		region := region
 		go func() {
 			defer wg.Done()
@@ -88,6 +96,7 @@ func (m *EC2InstanceProcessor) processAllRegions() {
 
 func (m *EC2InstanceProcessor) processRegion(region string) {
 	defer func() {
+		m.processRegionJobsFinished[region] = true
 		if r := recover(); r != nil {
 			m.publishError(fmt.Errorf("%v", r))
 		}
@@ -293,6 +302,32 @@ func (m *EC2InstanceProcessor) processRegion(region string) {
 		m.publishOptimizationItem(oi.ToOptimizationItem())
 		if !oi.Skipped {
 			m.processWastageChan <- oi
+		}
+	}
+}
+
+func (m *EC2InstanceProcessor) SendResultsReadyMessage() {
+	for {
+		ready := true
+		time.Sleep(time.Second)
+		for _, f := range m.processRegionJobsFinished {
+			if !f {
+				ready = false
+				break
+			}
+		}
+		if !ready {
+			continue
+		}
+		for _, i := range m.items {
+			if i.OptimizationLoading {
+				ready = false
+				break
+			}
+		}
+		if ready {
+			m.publishResultsReady()
+			return
 		}
 	}
 }

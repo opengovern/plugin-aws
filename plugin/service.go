@@ -110,6 +110,16 @@ func (p *AWSPlugin) StartProcess(command string, flags map[string]string, kaytuA
 		})
 	}
 
+	publishResultsReady := func() {
+		p.stream.Send(&golang.PluginMessage{
+			PluginMessage: &golang.PluginMessage_Ready{
+				Ready: &golang.ResultsReady{
+					Ready: true,
+				},
+			},
+		})
+	}
+
 	if command == "ec2-instance" {
 		p.processor = processor2.NewEC2InstanceProcessor(
 			awsPrv,
@@ -118,6 +128,7 @@ func (p *AWSPlugin) StartProcess(command string, flags map[string]string, kaytuA
 			publishJobResult,
 			publishError,
 			publishOptimizationItem,
+			publishResultsReady,
 			kaytuAccessToken,
 		)
 	} else if command == "rds-instance" {
@@ -128,6 +139,7 @@ func (p *AWSPlugin) StartProcess(command string, flags map[string]string, kaytuA
 			publishJobResult,
 			publishError,
 			publishOptimizationItem,
+			publishResultsReady,
 			kaytuAccessToken,
 		)
 	} else {
