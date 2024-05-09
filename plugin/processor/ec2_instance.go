@@ -60,6 +60,7 @@ func NewEC2InstanceProcessor(
 		go r.processWastages()
 	}
 	go r.processAllRegions()
+	r.processRegionJobsFinished["start"] = false
 	go r.SendResultsReadyMessage()
 	return r
 }
@@ -85,6 +86,7 @@ func (m *EC2InstanceProcessor) processAllRegions() {
 	wg.Add(len(regions))
 	for _, region := range regions {
 		m.processRegionJobsFinished[region] = false
+		m.processRegionJobsFinished["start"] = true
 		region := region
 		go func() {
 			defer wg.Done()
