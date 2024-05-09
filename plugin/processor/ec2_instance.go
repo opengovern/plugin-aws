@@ -29,7 +29,7 @@ type EC2InstanceProcessor struct {
 	publishJob              func(result *golang.JobResult) *golang.JobResult
 	publishError            func(error)
 	publishOptimizationItem func(item *golang.OptimizationItem)
-	publishResultsReady     func()
+	publishResultsReady     func(bool)
 	kaytuAcccessToken       string
 
 	processRegionJobsFinished map[string]bool
@@ -45,7 +45,7 @@ func NewEC2InstanceProcessor(
 	publishJob func(result *golang.JobResult) *golang.JobResult,
 	publishError func(error),
 	publishOptimizationItem func(item *golang.OptimizationItem),
-	publishResultsReady func(),
+	publishResultsReady func(bool),
 	kaytuAcccessToken string,
 ) *EC2InstanceProcessor {
 	r := &EC2InstanceProcessor{
@@ -346,19 +346,13 @@ func (m *EC2InstanceProcessor) SendResultsReadyMessage() {
 				break
 			}
 		}
-		if !ready {
-			continue
-		}
 		for _, i := range m.items {
 			if i.OptimizationLoading {
 				ready = false
 				break
 			}
 		}
-		if ready {
-			m.publishResultsReady()
-			return
-		}
+		m.publishResultsReady(ready)
 	}
 }
 

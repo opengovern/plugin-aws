@@ -110,15 +110,16 @@ func (p *AWSPlugin) StartProcess(command string, flags map[string]string, kaytuA
 		})
 	}
 
-	publishResultsReady := func() {
+	publishResultsReady := func(b bool) {
 		p.stream.Send(&golang.PluginMessage{
 			PluginMessage: &golang.PluginMessage_Ready{
 				Ready: &golang.ResultsReady{
-					Ready: true,
+					Ready: b,
 				},
 			},
 		})
 	}
+	publishResultsReady(false)
 
 	if command == "ec2-instance" {
 		p.processor = processor2.NewEC2InstanceProcessor(
