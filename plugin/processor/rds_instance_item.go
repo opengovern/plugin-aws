@@ -15,6 +15,7 @@ type RDSInstanceItem struct {
 	OptimizationLoading bool
 	Preferences         []*golang.PreferenceItem
 	Skipped             bool
+	LazyLoadingEnabled  bool
 	SkipReason          string
 
 	Metrics map[string][]types2.Datapoint
@@ -73,9 +74,19 @@ func (i RDSInstanceItem) RDSInstanceDevice() *golang.Device {
 	}
 	storageIOPSProperty := &golang.Property{
 		Key:     "  IOPS",
-		Current: fmt.Sprintf("%d", i.Wastage.RightSizing.Current.StorageIops),
+		Current: utils.PInt32ToString(i.Wastage.RightSizing.Current.StorageIops),
 		Average: fmt.Sprintf("%s io/s", utils.PFloat64ToString(i.Wastage.RightSizing.StorageIops.Avg)),
 		Max:     fmt.Sprintf("%s io/s", utils.PFloat64ToString(i.Wastage.RightSizing.StorageIops.Max)),
+	}
+	if storageIOPSProperty.Current != "" {
+		storageIOPSProperty.Current = fmt.Sprintf("%s io/s", storageIOPSProperty.Current)
+	} else {
+		storageIOPSProperty.Current = "N/A"
+	}
+	// current number is in MB/s, so we need to convert it to bytes/s so matches the other values
+	if i.Wastage.RightSizing.Current.StorageThroughput != nil {
+		v := *i.Wastage.RightSizing.Current.StorageThroughput * 1024.0 * 1024.0
+		i.Wastage.RightSizing.Current.StorageThroughput = &v
 	}
 	storageThroughputProperty := &golang.Property{
 		Key:     "  Throughput",
@@ -95,7 +106,17 @@ func (i RDSInstanceItem) RDSInstanceDevice() *golang.Device {
 		memoryProperty.Recommended = fmt.Sprintf("%d GiB", i.Wastage.RightSizing.Recommended.MemoryGb)
 		storageTypeProperty.Recommended = utils.PString(i.Wastage.RightSizing.Recommended.StorageType)
 		storageSizeProperty.Recommended = utils.SizeByteToGB(i.Wastage.RightSizing.Recommended.StorageSize)
-		storageIOPSProperty.Recommended = fmt.Sprintf("%s io/s", utils.PInt32ToString(i.Wastage.RightSizing.Recommended.StorageIops))
+		storageIOPSProperty.Recommended = utils.PInt32ToString(i.Wastage.RightSizing.Recommended.StorageIops)
+		if storageIOPSProperty.Recommended != "" {
+			storageIOPSProperty.Recommended = fmt.Sprintf("%s io/s", storageIOPSProperty.Recommended)
+		} else {
+			storageIOPSProperty.Recommended = "N/A"
+		}
+		// Recommended number is in MB/s, so we need to convert it to bytes/s so matches the other values
+		if i.Wastage.RightSizing.Recommended.StorageThroughput != nil {
+			v := *i.Wastage.RightSizing.Recommended.StorageThroughput * 1024.0 * 1024.0
+			i.Wastage.RightSizing.Recommended.StorageThroughput = &v
+		}
 		storageThroughputProperty.Recommended = utils.PStorageThroughputMbps(i.Wastage.RightSizing.Recommended.StorageThroughput)
 	}
 	ec2Instance.Properties = append(ec2Instance.Properties, regionProperty)
@@ -125,15 +146,16 @@ func (i RDSInstanceItem) Devices() []*golang.Device {
 
 func (i RDSInstanceItem) ToOptimizationItem() *golang.OptimizationItem {
 	oi := &golang.OptimizationItem{
-		Id:           *i.Instance.DBInstanceIdentifier,
-		ResourceType: *i.Instance.DBInstanceClass,
-		Region:       i.Region,
-		Devices:      i.Devices(),
-		Preferences:  i.Preferences,
-		Description:  i.Wastage.RightSizing.Description,
-		Loading:      i.OptimizationLoading,
-		Skipped:      i.Skipped,
-		SkipReason:   i.SkipReason,
+		Id:                 *i.Instance.DBInstanceIdentifier,
+		ResourceType:       *i.Instance.DBInstanceClass,
+		Region:             i.Region,
+		Devices:            i.Devices(),
+		Preferences:        i.Preferences,
+		Description:        i.Wastage.RightSizing.Description,
+		Loading:            i.OptimizationLoading,
+		Skipped:            i.Skipped,
+		SkipReason:         i.SkipReason,
+		LazyLoadingEnabled: i.LazyLoadingEnabled,
 	}
 
 	//if i.Instance.PlatformDetails != nil {
