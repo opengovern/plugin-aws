@@ -18,7 +18,7 @@ import (
 	"time"
 )
 
-const MaxEC2InstanceWithoutLazyLoading = 5
+const MaxEC2InstanceWithoutLazyLoading = 10
 
 type EC2InstanceProcessor struct {
 	provider                *aws2.AWS
