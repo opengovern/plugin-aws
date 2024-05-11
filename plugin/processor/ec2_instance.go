@@ -32,7 +32,8 @@ type EC2InstanceProcessor struct {
 	publishResultsReady     func(bool)
 	kaytuAcccessToken       string
 
-	processRegionJobsFinished map[string]bool
+	processRegionJobsFinished      map[string]bool
+	processRegionJobsFinishedMutex sync.RWMutex
 
 	lazyLoadCounter int
 	lazyLoadMutex   sync.RWMutex
@@ -65,7 +66,10 @@ func NewEC2InstanceProcessor(
 		go r.processWastages()
 	}
 	go r.processAllRegions()
+	r.processRegionJobsFinishedMutex.Lock()
 	r.processRegionJobsFinished["start"] = false
+	r.processRegionJobsFinishedMutex.Unlock()
+
 	go r.SendResultsReadyMessage()
 	return r
 }
@@ -90,8 +94,10 @@ func (m *EC2InstanceProcessor) processAllRegions() {
 	wg := sync.WaitGroup{}
 	wg.Add(len(regions))
 	for _, region := range regions {
+		m.processRegionJobsFinishedMutex.Lock()
 		m.processRegionJobsFinished[region] = false
 		m.processRegionJobsFinished["start"] = true
+		m.processRegionJobsFinishedMutex.Unlock()
 		region := region
 		go func() {
 			defer wg.Done()
@@ -103,7 +109,9 @@ func (m *EC2InstanceProcessor) processAllRegions() {
 
 func (m *EC2InstanceProcessor) processRegion(region string) {
 	defer func() {
+		m.processRegionJobsFinishedMutex.Lock()
 		m.processRegionJobsFinished[region] = true
+		m.processRegionJobsFinishedMutex.Unlock()
 		if r := recover(); r != nil {
 			m.publishError(fmt.Errorf("%v", r))
 		}
@@ -340,12 +348,14 @@ func (m *EC2InstanceProcessor) SendResultsReadyMessage() {
 	for {
 		ready := true
 		time.Sleep(time.Second)
+		m.processRegionJobsFinishedMutex.RLock()
 		for _, f := range m.processRegionJobsFinished {
 			if !f {
 				ready = false
 				break
 			}
 		}
+		m.processRegionJobsFinishedMutex.RUnlock()
 		for _, i := range m.items {
 			if i.OptimizationLoading {
 				ready = false
