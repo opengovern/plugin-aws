@@ -23,7 +23,7 @@ func NewPlugin() *AWSPlugin {
 
 func (p *AWSPlugin) GetConfig() golang.RegisterConfig {
 	return golang.RegisterConfig{
-		Name:     "aws",
+		Name:     "kaytu-io/plugin-aws",
 		Version:  version.VERSION,
 		Provider: "aws",
 		Commands: []*golang.Command{
