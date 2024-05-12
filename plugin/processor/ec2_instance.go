@@ -302,7 +302,7 @@ func (m *EC2InstanceProcessor) processInstance(instance types.Instance, region s
 			return
 		}
 
-		volumeIops, err := m.metricProvider.GetMetrics(
+		volumeIops, err := m.metricProvider.GetDayByDayMetrics(
 			region,
 			"AWS/EBS",
 			[]string{
@@ -312,7 +312,7 @@ func (m *EC2InstanceProcessor) processInstance(instance types.Instance, region s
 			map[string][]string{
 				"VolumeId": {v},
 			},
-			startTime, endTime,
+			7,
 			time.Minute,
 			[]types2.Statistic{
 				types2.StatisticSum,
