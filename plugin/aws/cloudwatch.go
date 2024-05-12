@@ -98,6 +98,35 @@ func (cw *CloudWatch) GetMetrics(
 	return metrics, nil
 }
 
+func (cw *CloudWatch) GetDayByDayMetrics(
+	region string,
+	namespace string,
+	metricNames []string,
+	filters map[string][]string,
+	days int,
+	interval time.Duration,
+	statistics []types2.Statistic,
+) (map[string][]types2.Datapoint, error) {
+	datapoints := make(map[string][]types2.Datapoint)
+	for i := 1; i <= days; i++ {
+		startTime := time.Now().Add(-time.Duration(24*i) * time.Hour)
+		endTime := time.Now().Add(-time.Duration(24*(i-1)) * time.Hour)
+		metrics, err := cw.GetMetrics(region, namespace, metricNames, filters, startTime, endTime, interval, statistics)
+		if err != nil {
+			return nil, err
+		}
+		for k, v := range metrics {
+			if _, ok := datapoints[k]; ok {
+				datapoints[k] = append(datapoints[k], v...)
+			} else {
+				datapoints[k] = []types2.Datapoint{}
+				datapoints[k] = append(datapoints[k], v...)
+			}
+		}
+	}
+	return datapoints, nil
+}
+
 func GetDatapointsAvgFromSum(dps []types2.Datapoint, period int32) []types2.Datapoint {
 	for i, dp := range dps {
 		avg := (*dp.Sum) / float64(period)

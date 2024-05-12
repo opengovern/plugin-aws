@@ -168,9 +168,7 @@ func (m *RDSInstanceProcessor) processDBInstance(instance types.DBInstance, regi
 			"FreeStorageSpace",
 			"NetworkReceiveThroughput",
 			"NetworkTransmitThroughput",
-			"ReadIOPS",
 			"ReadThroughput",
-			"WriteIOPS",
 			"WriteThroughput",
 		},
 		map[string][]string{
@@ -184,12 +182,31 @@ func (m *RDSInstanceProcessor) processDBInstance(instance types.DBInstance, regi
 			types2.StatisticMinimum,
 		},
 	)
+	iopsMetrics, err := m.metricProvider.GetDayByDayMetrics(
+		region,
+		"AWS/RDS",
+		[]string{
+			"ReadIOPS",
+			"WriteIOPS",
+		},
+		map[string][]string{
+			"DBInstanceIdentifier": {*instance.DBInstanceIdentifier},
+		},
+		7,
+		time.Minute,
+		[]types2.Statistic{
+			types2.StatisticSum,
+		},
+	)
 	if err != nil {
 		imjob.FailureMessage = err.Error()
 		m.publishJob(imjob)
 		return
 	}
 	for k, v := range cwMetrics {
+		instanceMetrics[k] = v
+	}
+	for k, v := range iopsMetrics {
 		instanceMetrics[k] = v
 	}
 	m.publishJob(imjob)
