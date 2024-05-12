@@ -277,14 +277,13 @@ func (m *EC2InstanceProcessor) processInstance(instance types.Instance, region s
 		}
 	}
 
-	volumeMetrics := map[string]map[string][]types2.Datapoint{}
+	volumeThroughputsMap := map[string]map[string][]types2.Datapoint{}
+	volumeIopsMap := map[string]map[string][]types2.Datapoint{}
 	for _, v := range volumeIDs {
-		volumeMetric, err := m.metricProvider.GetMetrics(
+		volumeThroughput, err := m.metricProvider.GetMetrics(
 			region,
 			"AWS/EBS",
 			[]string{
-				"VolumeReadOps",
-				"VolumeWriteOps",
 				"VolumeReadBytes",
 				"VolumeWriteBytes",
 			},
@@ -304,9 +303,32 @@ func (m *EC2InstanceProcessor) processInstance(instance types.Instance, region s
 			return
 		}
 
+		volumeIops, err := m.metricProvider.GetMetrics(
+			region,
+			"AWS/EBS",
+			[]string{
+				"VolumeReadOps",
+				"VolumeWriteOps",
+			},
+			map[string][]string{
+				"VolumeId": {v},
+			},
+			startTime, endTime,
+			time.Minute,
+			[]types2.Statistic{
+				types2.StatisticSum,
+			},
+		)
+		if err != nil {
+			ivjob.FailureMessage = err.Error()
+			m.publishJob(ivjob)
+			return
+		}
+
 		// Hash v
 		hashedId := utils.HashString(v)
-		volumeMetrics[hashedId] = volumeMetric
+		volumeThroughputsMap[hashedId] = volumeThroughput
+		volumeIopsMap[hashedId] = volumeIops
 	}
 	m.publishJob(ivjob)
 
@@ -314,7 +336,8 @@ func (m *EC2InstanceProcessor) processInstance(instance types.Instance, region s
 		Instance:            instance,
 		Volumes:             volumes,
 		Metrics:             instanceMetrics,
-		VolumeMetrics:       volumeMetrics,
+		VolumeThroughput:    volumeThroughputsMap,
+		VolumeIops:          volumeIopsMap,
 		Region:              region,
 		OptimizationLoading: true,
 		LazyLoadingEnabled:  false,
@@ -431,11 +454,12 @@ func (m *EC2InstanceProcessor) wastageWorker(item EC2InstanceItem) {
 			UsageOperation:    *item.Instance.UsageOperation,
 			Tenancy:           item.Instance.Placement.Tenancy,
 		},
-		Volumes:       volumes,
-		Metrics:       item.Metrics,
-		VolumeMetrics: item.VolumeMetrics,
-		Region:        item.Region,
-		Preferences:   preferences.Export(item.Preferences),
+		Volumes:          volumes,
+		Metrics:          item.Metrics,
+		VolumeThroughput: item.VolumeThroughput,
+		VolumeIops:       item.VolumeIops,
+		Region:           item.Region,
+		Preferences:      preferences.Export(item.Preferences),
 	}, m.kaytuAcccessToken)
 	if err != nil {
 		if strings.Contains(err.Error(), "please login") {
@@ -464,7 +488,8 @@ func (m *EC2InstanceProcessor) wastageWorker(item EC2InstanceItem) {
 		SkipReason:          "",
 		Volumes:             item.Volumes,
 		Metrics:             item.Metrics,
-		VolumeMetrics:       item.VolumeMetrics,
+		VolumeThroughput:    item.VolumeThroughput,
+		VolumeIops:          item.VolumeIops,
 		Wastage:             *res,
 	}
 	m.items[*item.Instance.InstanceId] = item
