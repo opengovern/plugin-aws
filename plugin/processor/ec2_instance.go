@@ -283,8 +283,6 @@ func (m *EC2InstanceProcessor) processInstance(instance types.Instance, region s
 			region,
 			"AWS/EBS",
 			[]string{
-				"VolumeReadOps",
-				"VolumeWriteOps",
 				"VolumeReadBytes",
 				"VolumeWriteBytes",
 			},
@@ -302,6 +300,33 @@ func (m *EC2InstanceProcessor) processInstance(instance types.Instance, region s
 			ivjob.FailureMessage = err.Error()
 			m.publishJob(ivjob)
 			return
+		}
+
+		volumeIops, err := m.metricProvider.GetMetrics(
+			region,
+			"AWS/EBS",
+			[]string{
+				"VolumeReadOps",
+				"VolumeWriteOps",
+			},
+			map[string][]string{
+				"VolumeId": {v},
+			},
+			startTime, endTime,
+			time.Minute,
+			[]types2.Statistic{
+				types2.StatisticSum,
+			},
+		)
+		if err != nil {
+			ivjob.FailureMessage = err.Error()
+			m.publishJob(ivjob)
+			return
+		}
+
+		for k, val := range volumeIops {
+			val = aws2.GetDatapointsAvgFromSum(val, 60)
+			volumeMetric[k] = val
 		}
 
 		// Hash v
