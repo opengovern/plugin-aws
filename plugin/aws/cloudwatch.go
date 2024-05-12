@@ -97,3 +97,12 @@ func (cw *CloudWatch) GetMetrics(
 	}
 	return metrics, nil
 }
+
+func GetDatapointsAvgFromSum(dps []types2.Datapoint, period int32) []types2.Datapoint {
+	for i, dp := range dps {
+		avg := (*dp.Sum) / float64(period)
+		dp.Average = &avg
+		dps[i] = dp
+	}
+	return dps
+}

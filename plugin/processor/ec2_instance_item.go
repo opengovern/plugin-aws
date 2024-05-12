@@ -20,8 +20,7 @@ type EC2InstanceItem struct {
 	SkipReason          string
 	Volumes             []types.Volume
 	Metrics             map[string][]types2.Datapoint
-	VolumeThroughput    map[string]map[string][]types2.Datapoint
-	VolumeIops          map[string]map[string][]types2.Datapoint
+	VolumeMetrics       map[string]map[string][]types2.Datapoint
 	Wastage             kaytu.EC2InstanceWastageResponse
 }
 

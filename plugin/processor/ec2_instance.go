@@ -277,10 +277,9 @@ func (m *EC2InstanceProcessor) processInstance(instance types.Instance, region s
 		}
 	}
 
-	volumeThroughputsMap := map[string]map[string][]types2.Datapoint{}
-	volumeIopsMap := map[string]map[string][]types2.Datapoint{}
+	volumeMetrics := map[string]map[string][]types2.Datapoint{}
 	for _, v := range volumeIDs {
-		volumeThroughput, err := m.metricProvider.GetMetrics(
+		volumeMetric, err := m.metricProvider.GetMetrics(
 			region,
 			"AWS/EBS",
 			[]string{
@@ -325,10 +324,14 @@ func (m *EC2InstanceProcessor) processInstance(instance types.Instance, region s
 			return
 		}
 
+		for k, val := range volumeIops {
+			val = aws2.GetDatapointsAvgFromSum(val, 60)
+			volumeMetric[k] = val
+		}
+
 		// Hash v
 		hashedId := utils.HashString(v)
-		volumeThroughputsMap[hashedId] = volumeThroughput
-		volumeIopsMap[hashedId] = volumeIops
+		volumeMetrics[hashedId] = volumeMetric
 	}
 	m.publishJob(ivjob)
 
@@ -336,8 +339,7 @@ func (m *EC2InstanceProcessor) processInstance(instance types.Instance, region s
 		Instance:            instance,
 		Volumes:             volumes,
 		Metrics:             instanceMetrics,
-		VolumeThroughput:    volumeThroughputsMap,
-		VolumeIops:          volumeIopsMap,
+		VolumeMetrics:       volumeMetrics,
 		Region:              region,
 		OptimizationLoading: true,
 		LazyLoadingEnabled:  false,
@@ -454,12 +456,11 @@ func (m *EC2InstanceProcessor) wastageWorker(item EC2InstanceItem) {
 			UsageOperation:    *item.Instance.UsageOperation,
 			Tenancy:           item.Instance.Placement.Tenancy,
 		},
-		Volumes:          volumes,
-		Metrics:          item.Metrics,
-		VolumeThroughput: item.VolumeThroughput,
-		VolumeIops:       item.VolumeIops,
-		Region:           item.Region,
-		Preferences:      preferences.Export(item.Preferences),
+		Volumes:       volumes,
+		Metrics:       item.Metrics,
+		VolumeMetrics: item.VolumeMetrics,
+		Region:        item.Region,
+		Preferences:   preferences.Export(item.Preferences),
 	}, m.kaytuAcccessToken)
 	if err != nil {
 		if strings.Contains(err.Error(), "please login") {
@@ -488,8 +489,7 @@ func (m *EC2InstanceProcessor) wastageWorker(item EC2InstanceItem) {
 		SkipReason:          "",
 		Volumes:             item.Volumes,
 		Metrics:             item.Metrics,
-		VolumeThroughput:    item.VolumeThroughput,
-		VolumeIops:          item.VolumeIops,
+		VolumeMetrics:       item.VolumeMetrics,
 		Wastage:             *res,
 	}
 	m.items[*item.Instance.InstanceId] = item

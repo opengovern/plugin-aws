@@ -36,16 +36,15 @@ type EC2Volume struct {
 }
 
 type EC2InstanceWastageRequest struct {
-	RequestId        string                                   `json:"requestId"`
-	CliVersion       string                                   `json:"cliVersion"`
-	Identification   map[string]string                        `json:"identification"`
-	Instance         EC2Instance                              `json:"instance"`
-	Volumes          []EC2Volume                              `json:"volumes"`
-	Metrics          map[string][]types2.Datapoint            `json:"metrics"`
-	VolumeThroughput map[string]map[string][]types2.Datapoint `json:"volumeMetrics"`
-	VolumeIops       map[string]map[string][]types2.Datapoint `json:"volumeMetrics"`
-	Region           string                                   `json:"region"`
-	Preferences      map[string]*string                       `json:"preferences"`
+	RequestId      string                                   `json:"requestId"`
+	CliVersion     string                                   `json:"cliVersion"`
+	Identification map[string]string                        `json:"identification"`
+	Instance       EC2Instance                              `json:"instance"`
+	Volumes        []EC2Volume                              `json:"volumes"`
+	Metrics        map[string][]types2.Datapoint            `json:"metrics"`
+	VolumeMetrics  map[string]map[string][]types2.Datapoint `json:"volumeMetrics"`
+	Region         string                                   `json:"region"`
+	Preferences    map[string]*string                       `json:"preferences"`
 }
 
 type RightsizingEC2Instance struct {
