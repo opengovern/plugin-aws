@@ -22,13 +22,20 @@ type RDSInstanceItem struct {
 	Wastage kaytu.AwsRdsWastageResponse
 }
 
-func (i RDSInstanceItem) RDSInstanceDevice() *golang.Device {
-	ec2Instance := &golang.Device{
+func (i RDSInstanceItem) RDSInstanceDevice() []*golang.Device {
+	ec2InstanceCompute := &golang.Device{
 		Properties:   nil,
 		DeviceId:     *i.Instance.DBInstanceIdentifier,
-		ResourceType: "RDS Instance",
+		ResourceType: "RDS Instance Compute",
 		Runtime:      "730 hours",
-		CurrentCost:  i.Wastage.RightSizing.Current.Cost,
+		CurrentCost:  i.Wastage.RightSizing.Current.ComputeCost,
+	}
+	ec2InstanceStorage := &golang.Device{
+		Properties:   nil,
+		DeviceId:     *i.Instance.DBInstanceIdentifier,
+		ResourceType: "RDS Instance Storage",
+		Runtime:      "730 hours",
+		CurrentCost:  i.Wastage.RightSizing.Current.StorageCost,
 	}
 	regionProperty := &golang.Property{
 		Key:     "Region",
@@ -96,7 +103,8 @@ func (i RDSInstanceItem) RDSInstanceDevice() *golang.Device {
 	}
 
 	if i.Wastage.RightSizing.Recommended != nil {
-		ec2Instance.RightSizedCost = i.Wastage.RightSizing.Recommended.Cost
+		ec2InstanceCompute.RightSizedCost = i.Wastage.RightSizing.Recommended.ComputeCost
+		ec2InstanceStorage.RightSizedCost = i.Wastage.RightSizing.Recommended.StorageCost
 		regionProperty.Recommended = i.Wastage.RightSizing.Recommended.Region
 		instanceSizeProperty.Recommended = i.Wastage.RightSizing.Recommended.InstanceType
 		engineProperty.Recommended = i.Wastage.RightSizing.Recommended.Engine
@@ -119,29 +127,34 @@ func (i RDSInstanceItem) RDSInstanceDevice() *golang.Device {
 		}
 		storageThroughputProperty.Recommended = utils.PStorageThroughputMbps(i.Wastage.RightSizing.Recommended.StorageThroughput)
 	}
-	ec2Instance.Properties = append(ec2Instance.Properties, regionProperty)
-	ec2Instance.Properties = append(ec2Instance.Properties, instanceSizeProperty)
-	ec2Instance.Properties = append(ec2Instance.Properties, engineProperty)
-	ec2Instance.Properties = append(ec2Instance.Properties, engineVerProperty)
-	ec2Instance.Properties = append(ec2Instance.Properties, clusterTypeProperty)
-	ec2Instance.Properties = append(ec2Instance.Properties, &golang.Property{
-		Key: "Compute",
-	})
-	ec2Instance.Properties = append(ec2Instance.Properties, vCPUProperty)
-	ec2Instance.Properties = append(ec2Instance.Properties, memoryProperty)
-	ec2Instance.Properties = append(ec2Instance.Properties, &golang.Property{
-		Key: "Storage",
-	})
-	ec2Instance.Properties = append(ec2Instance.Properties, storageTypeProperty)
-	ec2Instance.Properties = append(ec2Instance.Properties, storageSizeProperty)
-	ec2Instance.Properties = append(ec2Instance.Properties, storageIOPSProperty)
-	ec2Instance.Properties = append(ec2Instance.Properties, storageThroughputProperty)
+	ec2InstanceCompute.Properties = append(ec2InstanceCompute.Properties, regionProperty)
+	ec2InstanceCompute.Properties = append(ec2InstanceCompute.Properties, instanceSizeProperty)
+	ec2InstanceCompute.Properties = append(ec2InstanceCompute.Properties, engineProperty)
+	ec2InstanceCompute.Properties = append(ec2InstanceCompute.Properties, engineVerProperty)
+	ec2InstanceCompute.Properties = append(ec2InstanceCompute.Properties, clusterTypeProperty)
+	ec2InstanceStorage.Properties = append(ec2InstanceStorage.Properties, regionProperty)
+	ec2InstanceStorage.Properties = append(ec2InstanceStorage.Properties, instanceSizeProperty)
+	ec2InstanceStorage.Properties = append(ec2InstanceStorage.Properties, engineProperty)
+	ec2InstanceStorage.Properties = append(ec2InstanceStorage.Properties, engineVerProperty)
+	ec2InstanceStorage.Properties = append(ec2InstanceStorage.Properties, clusterTypeProperty)
+	//ec2InstanceStorage.Properties = append(ec2Instance.Properties, &golang.Property{
+	//	Key: "Compute",
+	//})
+	ec2InstanceCompute.Properties = append(ec2InstanceCompute.Properties, vCPUProperty)
+	ec2InstanceCompute.Properties = append(ec2InstanceCompute.Properties, memoryProperty)
+	//ec2Instance.Properties = append(ec2Instance.Properties, &golang.Property{
+	//	Key: "Storage",
+	//})
+	ec2InstanceStorage.Properties = append(ec2InstanceStorage.Properties, storageTypeProperty)
+	ec2InstanceStorage.Properties = append(ec2InstanceStorage.Properties, storageSizeProperty)
+	ec2InstanceStorage.Properties = append(ec2InstanceStorage.Properties, storageIOPSProperty)
+	ec2InstanceStorage.Properties = append(ec2InstanceStorage.Properties, storageThroughputProperty)
 
-	return ec2Instance
+	return []*golang.Device{ec2InstanceCompute, ec2InstanceStorage}
 }
 
 func (i RDSInstanceItem) Devices() []*golang.Device {
-	return []*golang.Device{i.RDSInstanceDevice()}
+	return i.RDSInstanceDevice()
 }
 
 func (i RDSInstanceItem) ToOptimizationItem() *golang.OptimizationItem {
