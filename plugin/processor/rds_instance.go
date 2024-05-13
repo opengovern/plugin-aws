@@ -34,7 +34,8 @@ type RDSInstanceProcessor struct {
 	publishResultsReady     func(bool)
 	kaytuAcccessToken       string
 
-	processRegionJobsFinished map[string]bool
+	processRegionJobsFinished      map[string]bool
+	processRegionJobsFinishedMutex sync.RWMutex
 
 	lazyLoadCounter int
 	lazyLoadMutex   sync.RWMutex
@@ -67,7 +68,10 @@ func NewRDSInstanceProcessor(
 		go r.ProcessWastages()
 	}
 	go r.ProcessAllRegions()
+	r.processRegionJobsFinishedMutex.Lock()
 	r.processRegionJobsFinished["start"] = false
+	r.processRegionJobsFinishedMutex.Unlock()
+
 	go r.SendResultsReadyMessage()
 	return r
 }
@@ -93,8 +97,10 @@ func (m *RDSInstanceProcessor) ProcessAllRegions() {
 	wg.Add(len(regions))
 	for _, region := range regions {
 		region := region
+		m.processRegionJobsFinishedMutex.Lock()
 		m.processRegionJobsFinished[region] = false
 		m.processRegionJobsFinished["start"] = true
+		m.processRegionJobsFinishedMutex.Unlock()
 		go func() {
 			defer wg.Done()
 			m.ProcessRegion(region)
@@ -105,7 +111,9 @@ func (m *RDSInstanceProcessor) ProcessAllRegions() {
 
 func (m *RDSInstanceProcessor) ProcessRegion(region string) {
 	defer func() {
+		m.processRegionJobsFinishedMutex.Lock()
 		m.processRegionJobsFinished[region] = true
+		m.processRegionJobsFinishedMutex.Unlock()
 		if r := recover(); r != nil {
 			m.publishError(fmt.Errorf("%v", r))
 		}
@@ -236,12 +244,14 @@ func (m *RDSInstanceProcessor) SendResultsReadyMessage() {
 	for {
 		ready := true
 		time.Sleep(time.Second)
+		m.processRegionJobsFinishedMutex.RLock()
 		for _, f := range m.processRegionJobsFinished {
 			if !f {
 				ready = false
 				break
 			}
 		}
+		m.processRegionJobsFinishedMutex.RUnlock()
 		for _, i := range m.items {
 			if i.OptimizationLoading {
 				ready = false
