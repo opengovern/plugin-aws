@@ -25,14 +25,14 @@ type RDSInstanceItem struct {
 func (i RDSInstanceItem) RDSInstanceDevice() []*golang.Device {
 	ec2InstanceCompute := &golang.Device{
 		Properties:   nil,
-		DeviceId:     *i.Instance.DBInstanceIdentifier,
+		DeviceId:     fmt.Sprintf("%s-compute", *i.Instance.DBInstanceIdentifier),
 		ResourceType: "RDS Instance Compute",
 		Runtime:      "730 hours",
 		CurrentCost:  i.Wastage.RightSizing.Current.ComputeCost,
 	}
 	ec2InstanceStorage := &golang.Device{
 		Properties:   nil,
-		DeviceId:     *i.Instance.DBInstanceIdentifier,
+		DeviceId:     fmt.Sprintf("%s-storage", *i.Instance.DBInstanceIdentifier),
 		ResourceType: "RDS Instance Storage",
 		Runtime:      "730 hours",
 		CurrentCost:  i.Wastage.RightSizing.Current.StorageCost,
@@ -58,29 +58,29 @@ func (i RDSInstanceItem) RDSInstanceDevice() []*golang.Device {
 		Current: string(i.Wastage.RightSizing.Current.ClusterType),
 	}
 	vCPUProperty := &golang.Property{
-		Key:     "  vCPU",
+		Key:     "vCPU",
 		Current: fmt.Sprintf("%d", i.Wastage.RightSizing.Current.VCPU),
 		Average: utils.Percentage(i.Wastage.RightSizing.VCPU.Avg),
 		Max:     utils.Percentage(i.Wastage.RightSizing.VCPU.Max),
 	}
 	memoryProperty := &golang.Property{
-		Key:     "  Memory",
+		Key:     "Memory",
 		Current: fmt.Sprintf("%d GiB", i.Wastage.RightSizing.Current.MemoryGb),
 		Average: utils.MemoryUsagePercentageByFreeSpace(i.Wastage.RightSizing.FreeMemoryBytes.Avg, float64(i.Wastage.RightSizing.Current.MemoryGb)),
 		Max:     utils.MemoryUsagePercentageByFreeSpace(i.Wastage.RightSizing.FreeMemoryBytes.Min, float64(i.Wastage.RightSizing.Current.MemoryGb)),
 	}
 	storageTypeProperty := &golang.Property{
-		Key:     "  Type",
+		Key:     "Type",
 		Current: utils.PString(i.Wastage.RightSizing.Current.StorageType),
 	}
 	storageSizeProperty := &golang.Property{
-		Key:     "  Size",
+		Key:     "Size",
 		Current: utils.SizeByteToGB(i.Wastage.RightSizing.Current.StorageSize),
 		Average: utils.StorageUsagePercentageByFreeSpace(i.Wastage.RightSizing.FreeStorageBytes.Avg, i.Wastage.RightSizing.Current.StorageSize),
 		Max:     utils.StorageUsagePercentageByFreeSpace(i.Wastage.RightSizing.FreeStorageBytes.Min, i.Wastage.RightSizing.Current.StorageSize),
 	}
 	storageIOPSProperty := &golang.Property{
-		Key:     "  IOPS",
+		Key:     "IOPS",
 		Current: utils.PInt32ToString(i.Wastage.RightSizing.Current.StorageIops),
 		Average: fmt.Sprintf("%s io/s", utils.PFloat64ToString(i.Wastage.RightSizing.StorageIops.Avg)),
 		Max:     fmt.Sprintf("%s io/s", utils.PFloat64ToString(i.Wastage.RightSizing.StorageIops.Max)),
@@ -96,7 +96,7 @@ func (i RDSInstanceItem) RDSInstanceDevice() []*golang.Device {
 		i.Wastage.RightSizing.Current.StorageThroughput = &v
 	}
 	storageThroughputProperty := &golang.Property{
-		Key:     "  Throughput",
+		Key:     "Throughput",
 		Current: utils.PStorageThroughputMbps(i.Wastage.RightSizing.Current.StorageThroughput),
 		Average: utils.PStorageThroughputMbps(i.Wastage.RightSizing.StorageThroughputBytes.Avg),
 		Max:     utils.PStorageThroughputMbps(i.Wastage.RightSizing.StorageThroughputBytes.Max),
