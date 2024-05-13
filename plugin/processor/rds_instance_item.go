@@ -133,10 +133,6 @@ func (i RDSInstanceItem) RDSInstanceDevice() []*golang.Device {
 	ec2InstanceCompute.Properties = append(ec2InstanceCompute.Properties, engineVerProperty)
 	ec2InstanceCompute.Properties = append(ec2InstanceCompute.Properties, clusterTypeProperty)
 	ec2InstanceStorage.Properties = append(ec2InstanceStorage.Properties, regionProperty)
-	ec2InstanceStorage.Properties = append(ec2InstanceStorage.Properties, instanceSizeProperty)
-	ec2InstanceStorage.Properties = append(ec2InstanceStorage.Properties, engineProperty)
-	ec2InstanceStorage.Properties = append(ec2InstanceStorage.Properties, engineVerProperty)
-	ec2InstanceStorage.Properties = append(ec2InstanceStorage.Properties, clusterTypeProperty)
 	//ec2InstanceStorage.Properties = append(ec2Instance.Properties, &golang.Property{
 	//	Key: "Compute",
 	//})
