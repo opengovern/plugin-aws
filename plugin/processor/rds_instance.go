@@ -18,8 +18,6 @@ import (
 	"time"
 )
 
-const MaxRDSInstanceWithoutLazyLoading = 10
-
 type RDSInstanceProcessor struct {
 	provider       *aws.AWS
 	metricProvider *aws.CloudWatch
@@ -83,6 +81,12 @@ func (m *RDSInstanceProcessor) ProcessAllRegions() {
 		}
 	}()
 
+	configuration, err := kaytu.ConfigurationRequest()
+	if err != nil {
+		m.publishError(err)
+		return
+	}
+
 	job := m.publishJob(&golang.JobResult{Id: "list_rds_all_regions", Description: "Listing all available regions"})
 	job.Done = true
 	regions, err := m.provider.ListAllRegions()
@@ -103,13 +107,13 @@ func (m *RDSInstanceProcessor) ProcessAllRegions() {
 		m.processRegionJobsFinishedMutex.Unlock()
 		go func() {
 			defer wg.Done()
-			m.ProcessRegion(region)
+			m.ProcessRegion(region, configuration)
 		}()
 	}
 	wg.Wait()
 }
 
-func (m *RDSInstanceProcessor) ProcessRegion(region string) {
+func (m *RDSInstanceProcessor) ProcessRegion(region string, configuration *kaytu.Configuration) {
 	defer func() {
 		m.processRegionJobsFinishedMutex.Lock()
 		m.processRegionJobsFinished[region] = true
@@ -142,7 +146,7 @@ func (m *RDSInstanceProcessor) ProcessRegion(region string) {
 		if !oi.Skipped {
 			m.lazyLoadMutex.Lock()
 			m.lazyLoadCounter++
-			if m.lazyLoadCounter > MaxRDSInstanceWithoutLazyLoading {
+			if m.lazyLoadCounter > configuration.RDSLazyLoad {
 				oi.LazyLoadingEnabled = true
 			}
 			m.lazyLoadMutex.Unlock()

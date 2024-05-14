@@ -18,8 +18,6 @@ import (
 	"time"
 )
 
-const MaxEC2InstanceWithoutLazyLoading = 10
-
 type EC2InstanceProcessor struct {
 	provider                *aws2.AWS
 	metricProvider          *aws2.CloudWatch
@@ -81,6 +79,12 @@ func (m *EC2InstanceProcessor) processAllRegions() {
 		}
 	}()
 
+	configuration, err := kaytu2.ConfigurationRequest()
+	if err != nil {
+		m.publishError(err)
+		return
+	}
+
 	job := m.publishJob(&golang.JobResult{Id: "list_all_regions", Description: "Listing all available regions"})
 	job.Done = true
 	regions, err := m.provider.ListAllRegions()
@@ -101,13 +105,13 @@ func (m *EC2InstanceProcessor) processAllRegions() {
 		region := region
 		go func() {
 			defer wg.Done()
-			m.processRegion(region)
+			m.processRegion(region, configuration)
 		}()
 	}
 	wg.Wait()
 }
 
-func (m *EC2InstanceProcessor) processRegion(region string) {
+func (m *EC2InstanceProcessor) processRegion(region string, configuration *kaytu2.Configuration) {
 	defer func() {
 		m.processRegionJobsFinishedMutex.Lock()
 		m.processRegionJobsFinished[region] = true
@@ -164,7 +168,7 @@ func (m *EC2InstanceProcessor) processRegion(region string) {
 		if !oi.Skipped {
 			m.lazyLoadMutex.Lock()
 			m.lazyLoadCounter++
-			if m.lazyLoadCounter > MaxEC2InstanceWithoutLazyLoading {
+			if m.lazyLoadCounter > configuration.EC2LazyLoad {
 				oi.LazyLoadingEnabled = true
 			}
 			m.lazyLoadMutex.Unlock()
