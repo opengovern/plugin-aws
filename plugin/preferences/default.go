@@ -47,7 +47,7 @@ var DefaultRDSPreferences = []*golang.PreferenceItem{
 	{Service: "RDSInstance", Key: "LicenseModel", Pinned: true, PossibleValues: []string{"NA", "Bring your own license", "No license required", "License included"}},
 	{Service: "RDSInstance", Key: "ClusterType", Pinned: true, PossibleValues: []string{"Multi-AZ", "Multi-AZ (readable standbys)", "Single-AZ"}},
 	{Service: "RDSInstance", Key: "StorageType", PossibleValues: []string{"", "General Purpose", "General Purpose-Aurora", "General Purpose-GP3", "IO Optimized-Aurora", "Magnetic", "Provisioned IOPS", "Provisioned IOPS-IO2"}},
-	{Service: "RDSInstance", Key: "ExcludeBurstableInstances", Value: wrapperspb.String("Yes"), PreventPinning: true, PossibleValues: []string{"No", "Yes"}},
+	{Service: "RDSInstance", Key: "ExcludeBurstableInstances", Value: wrapperspb.String("if current resource is burstable"), PreventPinning: true, PossibleValues: []string{"No", "Yes", "if current resource is burstable"}},
 	{Service: "RDSInstance", Key: "StorageThroughputBreathingRoom", IsNumber: true, Value: wrapperspb.String("10"), PreventPinning: true, Unit: "%"},
 	{Service: "RDSInstance", Key: "StorageIopsBreathingRoom", IsNumber: true, Value: wrapperspb.String("10"), PreventPinning: true, Unit: "%"},
 	{Service: "RDSInstance", Key: "StorageSizeBreathingRoom", IsNumber: true, Value: wrapperspb.String("10"), PreventPinning: true, Unit: "%"},
