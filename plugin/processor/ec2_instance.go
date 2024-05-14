@@ -19,11 +19,12 @@ import (
 )
 
 type EC2InstanceProcessor struct {
-	provider                *aws2.AWS
-	metricProvider          *aws2.CloudWatch
-	identification          map[string]string
-	processWastageChan      chan EC2InstanceItem
-	items                   map[string]EC2InstanceItem
+	provider           *aws2.AWS
+	metricProvider     *aws2.CloudWatch
+	identification     map[string]string
+	processWastageChan chan EC2InstanceItem
+	items              sync.Map
+	//items                   map[string]EC2InstanceItem
 	publishJob              func(result *golang.JobResult) *golang.JobResult
 	publishError            func(error)
 	publishOptimizationItem func(item *golang.OptimizationItem)
@@ -52,7 +53,7 @@ func NewEC2InstanceProcessor(
 		provider:                  prv,
 		metricProvider:            metric,
 		identification:            identification,
-		items:                     map[string]EC2InstanceItem{},
+		items:                     sync.Map{}, // map[string]EC2InstanceItem{},
 		publishJob:                publishJob,
 		publishOptimizationItem:   publishOptimizationItem,
 		publishError:              publishError,
@@ -233,12 +234,13 @@ func (m *EC2InstanceProcessor) processRegion(region string, configuration *kaytu
 		}
 
 		// just to show the loading
-		m.items[*oi.Instance.InstanceId] = oi
+		m.items.Store(*oi.Instance.InstanceId, oi)
 		m.publishOptimizationItem(oi.ToOptimizationItem())
 	}
 
 	for _, instance := range instances {
-		if i, ok := m.items[*instance.InstanceId]; ok && (i.LazyLoadingEnabled || !i.OptimizationLoading) {
+		i, ok := m.items.Load(*instance.InstanceId)
+		if ok && (i.(EC2InstanceItem).LazyLoadingEnabled || !i.(EC2InstanceItem).OptimizationLoading) {
 			continue
 		}
 
@@ -424,7 +426,7 @@ func (m *EC2InstanceProcessor) processInstance(instance types.Instance, region s
 			oi.SkipReason = reason
 		}
 	}
-	m.items[*oi.Instance.InstanceId] = oi
+	m.items.Store(*oi.Instance.InstanceId, oi)
 	m.publishOptimizationItem(oi.ToOptimizationItem())
 	if !oi.Skipped && !oi.LazyLoadingEnabled {
 		m.processWastageChan <- oi
@@ -443,12 +445,13 @@ func (m *EC2InstanceProcessor) SendResultsReadyMessage() {
 			}
 		}
 		m.processRegionJobsFinishedMutex.RUnlock()
-		for _, i := range m.items {
-			if i.OptimizationLoading {
+		m.items.Range(func(key, value any) bool {
+			if value.(EC2InstanceItem).OptimizationLoading {
 				ready = false
-				break
+				return false
 			}
-		}
+			return true
+		})
 		m.publishResultsReady(ready)
 	}
 }
@@ -539,7 +542,7 @@ func (m *EC2InstanceProcessor) wastageWorker(item EC2InstanceItem) {
 
 	if res.RightSizing.Current.InstanceType == "" {
 		item.OptimizationLoading = false
-		m.items[*item.Instance.InstanceId] = item
+		m.items.Store(*item.Instance.InstanceId, item)
 		m.publishOptimizationItem(item.ToOptimizationItem())
 		return
 	}
@@ -556,15 +559,19 @@ func (m *EC2InstanceProcessor) wastageWorker(item EC2InstanceItem) {
 		VolumeMetrics:       item.VolumeMetrics,
 		Wastage:             *res,
 	}
-	m.items[*item.Instance.InstanceId] = item
+	m.items.Store(*item.Instance.InstanceId, item)
 	m.publishOptimizationItem(item.ToOptimizationItem())
 }
 
 func (m *EC2InstanceProcessor) ReEvaluate(id string, items []*golang.PreferenceItem) {
-	v := m.items[id]
+	vv, ok := m.items.Load(id)
+	var v EC2InstanceItem
+	if ok {
+		v = vv.(EC2InstanceItem)
+	}
 	v.Preferences = items
-	m.items[id] = v
-	m.processWastageChan <- m.items[id]
+	m.items.Store(id, v)
+	m.processWastageChan <- v
 }
 
 func toEBSVolume(v types.Volume) kaytu2.EC2Volume {
