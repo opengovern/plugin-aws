@@ -167,9 +167,9 @@ func (i RDSInstanceItem) ToOptimizationItem() *golang.OptimizationItem {
 		LazyLoadingEnabled: i.LazyLoadingEnabled,
 	}
 
-	//if i.Instance.PlatformDetails != nil {
-	//	oi.Platform = *i.Instance.PlatformDetails
-	//}
+	if i.Instance.Engine != nil {
+		oi.Platform = *i.Instance.Engine
+	}
 	//for _, t := range i.Instance.Tags {
 	//	if t.Key != nil && strings.ToLower(*t.Key) == "name" && t.Value != nil {
 	//		oi.Name = *t.Value
