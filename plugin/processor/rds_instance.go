@@ -148,6 +148,60 @@ func (m *RDSInstanceProcessor) ProcessRegion(region string) {
 			m.lazyLoadMutex.Unlock()
 		}
 
+		if !oi.Skipped {
+
+			var clusterType kaytu.AwsRdsClusterType
+			multiAZ := oi.Instance.MultiAZ != nil && *oi.Instance.MultiAZ
+			readableStandbys := oi.Instance.ReplicaMode == types.ReplicaModeOpenReadOnly
+			if multiAZ && readableStandbys {
+				clusterType = kaytu.AwsRdsClusterTypeMultiAzTwoInstance
+			} else if multiAZ {
+				clusterType = kaytu.AwsRdsClusterTypeMultiAzOneInstance
+			} else {
+				clusterType = kaytu.AwsRdsClusterTypeSingleInstance
+			}
+
+			req := kaytu.AwsRdsWastageRequest{
+				RequestId:      uuid.New().String(),
+				CliVersion:     version.VERSION,
+				Identification: m.identification,
+				Instance: kaytu.AwsRds{
+					HashedInstanceId:                   utils.HashString(*oi.Instance.DBInstanceIdentifier),
+					AvailabilityZone:                   *oi.Instance.AvailabilityZone,
+					InstanceType:                       *oi.Instance.DBInstanceClass,
+					Engine:                             *oi.Instance.Engine,
+					EngineVersion:                      *oi.Instance.EngineVersion,
+					LicenseModel:                       *oi.Instance.LicenseModel,
+					BackupRetentionPeriod:              oi.Instance.BackupRetentionPeriod,
+					ClusterType:                        clusterType,
+					PerformanceInsightsEnabled:         *oi.Instance.PerformanceInsightsEnabled,
+					PerformanceInsightsRetentionPeriod: oi.Instance.PerformanceInsightsRetentionPeriod,
+					StorageType:                        oi.Instance.StorageType,
+					StorageSize:                        oi.Instance.AllocatedStorage,
+					StorageIops:                        oi.Instance.Iops,
+				},
+				Metrics:     oi.Metrics,
+				Region:      oi.Region,
+				Preferences: preferences.Export(oi.Preferences),
+				Loading:     true,
+			}
+			if oi.Instance.StorageThroughput != nil {
+				floatThroughput := float64(*oi.Instance.StorageThroughput)
+				req.Instance.StorageThroughput = &floatThroughput
+			}
+			_, err := kaytu.RDSInstanceWastageRequest(req, m.kaytuAcccessToken)
+			if err != nil {
+				if strings.Contains(err.Error(), "please login") {
+					fmt.Println(err.Error())
+					os.Exit(1)
+					return
+				}
+				job.FailureMessage = err.Error()
+				m.publishJob(job)
+				return
+			}
+		}
+
 		// just to show the loading
 		m.items[*oi.Instance.DBInstanceIdentifier] = oi
 		m.publishOptimizationItem(oi.ToOptimizationItem())
@@ -309,6 +363,7 @@ func (m *RDSInstanceProcessor) WastageWorker(item RDSInstanceItem) {
 		Metrics:     item.Metrics,
 		Region:      item.Region,
 		Preferences: preferences.Export(item.Preferences),
+		Loading:     false,
 	}
 	if item.Instance.StorageThroughput != nil {
 		floatThroughput := float64(*item.Instance.StorageThroughput)

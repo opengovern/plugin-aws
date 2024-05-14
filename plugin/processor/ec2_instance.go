@@ -170,6 +170,64 @@ func (m *EC2InstanceProcessor) processRegion(region string) {
 			m.lazyLoadMutex.Unlock()
 		}
 
+		if !oi.Skipped {
+			var monitoring *types.MonitoringState
+			if oi.Instance.Monitoring != nil {
+				monitoring = &oi.Instance.Monitoring.State
+			}
+			var placement *kaytu2.EC2Placement
+			if oi.Instance.Placement != nil {
+				placement = &kaytu2.EC2Placement{
+					Tenancy: oi.Instance.Placement.Tenancy,
+				}
+				if oi.Instance.Placement.AvailabilityZone != nil {
+					placement.AvailabilityZone = *oi.Instance.Placement.AvailabilityZone
+				}
+				if oi.Instance.Placement.HostId != nil {
+					placement.HashedHostId = utils.HashString(*oi.Instance.Placement.HostId)
+				}
+			}
+			platform := ""
+			if oi.Instance.PlatformDetails != nil {
+				platform = *oi.Instance.PlatformDetails
+			}
+			_, err := kaytu2.Ec2InstanceWastageRequest(kaytu2.EC2InstanceWastageRequest{
+				RequestId:      uuid.New().String(),
+				CliVersion:     version.VERSION,
+				Identification: m.identification,
+				Instance: kaytu2.EC2Instance{
+					HashedInstanceId:  utils.HashString(*oi.Instance.InstanceId),
+					State:             oi.Instance.State.Name,
+					InstanceType:      oi.Instance.InstanceType,
+					Platform:          platform,
+					ThreadsPerCore:    *oi.Instance.CpuOptions.ThreadsPerCore,
+					CoreCount:         *oi.Instance.CpuOptions.CoreCount,
+					EbsOptimized:      *oi.Instance.EbsOptimized,
+					InstanceLifecycle: oi.Instance.InstanceLifecycle,
+					Monitoring:        monitoring,
+					Placement:         placement,
+					UsageOperation:    *oi.Instance.UsageOperation,
+					Tenancy:           oi.Instance.Placement.Tenancy,
+				},
+				Volumes:       nil,
+				VolumeCount:   len(instance.BlockDeviceMappings),
+				Metrics:       nil,
+				VolumeMetrics: nil,
+				Region:        oi.Region,
+				Preferences:   preferences.Export(oi.Preferences),
+				Loading:       true,
+			}, m.kaytuAcccessToken)
+			if err != nil {
+				if strings.Contains(err.Error(), "please login") {
+					m.publishError(err)
+					return
+				}
+				job.FailureMessage = err.Error()
+				m.publishJob(job)
+				return
+			}
+		}
+
 		// just to show the loading
 		m.items[*oi.Instance.InstanceId] = oi
 		m.publishOptimizationItem(oi.ToOptimizationItem())
@@ -457,10 +515,12 @@ func (m *EC2InstanceProcessor) wastageWorker(item EC2InstanceItem) {
 			Tenancy:           item.Instance.Placement.Tenancy,
 		},
 		Volumes:       volumes,
+		VolumeCount:   len(volumes),
 		Metrics:       item.Metrics,
 		VolumeMetrics: item.VolumeMetrics,
 		Region:        item.Region,
 		Preferences:   preferences.Export(item.Preferences),
+		Loading:       false,
 	}, m.kaytuAcccessToken)
 	if err != nil {
 		if strings.Contains(err.Error(), "please login") {
