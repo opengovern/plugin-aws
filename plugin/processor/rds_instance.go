@@ -244,6 +244,11 @@ func (m *RDSInstanceProcessor) processDBInstance(instance types.DBInstance, regi
 			types2.StatisticMinimum,
 		},
 	)
+	if err != nil {
+		imjob.FailureMessage = err.Error()
+		m.publishJob(imjob)
+		return
+	}
 	iopsMetrics, err := m.metricProvider.GetDayByDayMetrics(
 		region,
 		"AWS/RDS",
@@ -265,11 +270,42 @@ func (m *RDSInstanceProcessor) processDBInstance(instance types.DBInstance, regi
 		m.publishJob(imjob)
 		return
 	}
+
+	var clusterMetrics map[string][]types2.Datapoint
+	if instance.DBClusterIdentifier != nil && strings.Contains(strings.ToLower(*instance.Engine), "aurora") {
+		clusterMetrics, err = m.metricProvider.GetMetrics(
+			region,
+			"AWS/RDS",
+			[]string{
+				"VolumeBytesUsed",
+			},
+			map[string][]string{
+				"DBClusterIdentifier": {*instance.DBClusterIdentifier},
+			},
+			startTime, endTime,
+			time.Hour,
+			[]types2.Statistic{
+				types2.StatisticAverage,
+				types2.StatisticMaximum,
+			},
+		)
+		if err != nil {
+			imjob.FailureMessage = err.Error()
+			m.publishJob(imjob)
+			return
+		}
+	}
+
 	for k, v := range cwMetrics {
 		instanceMetrics[k] = v
 	}
 	for k, v := range iopsMetrics {
 		instanceMetrics[k] = v
+	}
+	if clusterMetrics != nil {
+		for k, v := range clusterMetrics {
+			instanceMetrics[k] = v
+		}
 	}
 	m.publishJob(imjob)
 
