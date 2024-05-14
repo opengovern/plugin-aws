@@ -18,8 +18,6 @@ import (
 	"time"
 )
 
-const MaxRDSInstanceWithoutLazyLoading = 10
-
 type RDSInstanceProcessor struct {
 	provider       *aws.AWS
 	metricProvider *aws.CloudWatch
@@ -83,6 +81,12 @@ func (m *RDSInstanceProcessor) ProcessAllRegions() {
 		}
 	}()
 
+	configuration, err := kaytu.ConfigurationRequest()
+	if err != nil {
+		m.publishError(err)
+		return
+	}
+
 	job := m.publishJob(&golang.JobResult{Id: "list_rds_all_regions", Description: "Listing all available regions"})
 	job.Done = true
 	regions, err := m.provider.ListAllRegions()
@@ -103,13 +107,13 @@ func (m *RDSInstanceProcessor) ProcessAllRegions() {
 		m.processRegionJobsFinishedMutex.Unlock()
 		go func() {
 			defer wg.Done()
-			m.ProcessRegion(region)
+			m.ProcessRegion(region, configuration)
 		}()
 	}
 	wg.Wait()
 }
 
-func (m *RDSInstanceProcessor) ProcessRegion(region string) {
+func (m *RDSInstanceProcessor) ProcessRegion(region string, configuration *kaytu.Configuration) {
 	defer func() {
 		m.processRegionJobsFinishedMutex.Lock()
 		m.processRegionJobsFinished[region] = true
@@ -142,10 +146,64 @@ func (m *RDSInstanceProcessor) ProcessRegion(region string) {
 		if !oi.Skipped {
 			m.lazyLoadMutex.Lock()
 			m.lazyLoadCounter++
-			if m.lazyLoadCounter > MaxRDSInstanceWithoutLazyLoading {
+			if m.lazyLoadCounter > configuration.RDSLazyLoad {
 				oi.LazyLoadingEnabled = true
 			}
 			m.lazyLoadMutex.Unlock()
+		}
+
+		if !oi.Skipped {
+
+			var clusterType kaytu.AwsRdsClusterType
+			multiAZ := oi.Instance.MultiAZ != nil && *oi.Instance.MultiAZ
+			readableStandbys := oi.Instance.ReplicaMode == types.ReplicaModeOpenReadOnly
+			if multiAZ && readableStandbys {
+				clusterType = kaytu.AwsRdsClusterTypeMultiAzTwoInstance
+			} else if multiAZ {
+				clusterType = kaytu.AwsRdsClusterTypeMultiAzOneInstance
+			} else {
+				clusterType = kaytu.AwsRdsClusterTypeSingleInstance
+			}
+
+			req := kaytu.AwsRdsWastageRequest{
+				RequestId:      uuid.New().String(),
+				CliVersion:     version.VERSION,
+				Identification: m.identification,
+				Instance: kaytu.AwsRds{
+					HashedInstanceId:                   utils.HashString(*oi.Instance.DBInstanceIdentifier),
+					AvailabilityZone:                   *oi.Instance.AvailabilityZone,
+					InstanceType:                       *oi.Instance.DBInstanceClass,
+					Engine:                             *oi.Instance.Engine,
+					EngineVersion:                      *oi.Instance.EngineVersion,
+					LicenseModel:                       *oi.Instance.LicenseModel,
+					BackupRetentionPeriod:              oi.Instance.BackupRetentionPeriod,
+					ClusterType:                        clusterType,
+					PerformanceInsightsEnabled:         *oi.Instance.PerformanceInsightsEnabled,
+					PerformanceInsightsRetentionPeriod: oi.Instance.PerformanceInsightsRetentionPeriod,
+					StorageType:                        oi.Instance.StorageType,
+					StorageSize:                        oi.Instance.AllocatedStorage,
+					StorageIops:                        oi.Instance.Iops,
+				},
+				Metrics:     oi.Metrics,
+				Region:      oi.Region,
+				Preferences: preferences.Export(oi.Preferences),
+				Loading:     true,
+			}
+			if oi.Instance.StorageThroughput != nil {
+				floatThroughput := float64(*oi.Instance.StorageThroughput)
+				req.Instance.StorageThroughput = &floatThroughput
+			}
+			_, err := kaytu.RDSInstanceWastageRequest(req, m.kaytuAcccessToken)
+			if err != nil {
+				if strings.Contains(err.Error(), "please login") {
+					fmt.Println(err.Error())
+					os.Exit(1)
+					return
+				}
+				job.FailureMessage = err.Error()
+				m.publishJob(job)
+				return
+			}
 		}
 
 		// just to show the loading
@@ -190,6 +248,11 @@ func (m *RDSInstanceProcessor) processDBInstance(instance types.DBInstance, regi
 			types2.StatisticMinimum,
 		},
 	)
+	if err != nil {
+		imjob.FailureMessage = err.Error()
+		m.publishJob(imjob)
+		return
+	}
 	iopsMetrics, err := m.metricProvider.GetDayByDayMetrics(
 		region,
 		"AWS/RDS",
@@ -211,11 +274,42 @@ func (m *RDSInstanceProcessor) processDBInstance(instance types.DBInstance, regi
 		m.publishJob(imjob)
 		return
 	}
+
+	var clusterMetrics map[string][]types2.Datapoint
+	if instance.DBClusterIdentifier != nil && strings.Contains(strings.ToLower(*instance.Engine), "aurora") {
+		clusterMetrics, err = m.metricProvider.GetMetrics(
+			region,
+			"AWS/RDS",
+			[]string{
+				"VolumeBytesUsed",
+			},
+			map[string][]string{
+				"DBClusterIdentifier": {*instance.DBClusterIdentifier},
+			},
+			startTime, endTime,
+			time.Hour,
+			[]types2.Statistic{
+				types2.StatisticAverage,
+				types2.StatisticMaximum,
+			},
+		)
+		if err != nil {
+			imjob.FailureMessage = err.Error()
+			m.publishJob(imjob)
+			return
+		}
+	}
+
 	for k, v := range cwMetrics {
 		instanceMetrics[k] = v
 	}
 	for k, v := range iopsMetrics {
 		instanceMetrics[k] = v
+	}
+	if clusterMetrics != nil {
+		for k, v := range clusterMetrics {
+			instanceMetrics[k] = v
+		}
 	}
 	m.publishJob(imjob)
 
@@ -309,6 +403,7 @@ func (m *RDSInstanceProcessor) WastageWorker(item RDSInstanceItem) {
 		Metrics:     item.Metrics,
 		Region:      item.Region,
 		Preferences: preferences.Export(item.Preferences),
+		Loading:     false,
 	}
 	if item.Instance.StorageThroughput != nil {
 		floatThroughput := float64(*item.Instance.StorageThroughput)

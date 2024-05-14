@@ -22,7 +22,7 @@ var DefaultEC2Preferences = []*golang.PreferenceItem{
 	{Service: "EC2Instance", Key: "vCPU", IsNumber: true},
 	{Service: "EC2Instance", Key: "MemoryGB", Alias: "Memory", IsNumber: true, Pinned: true, Unit: "GiB"},
 	{Service: "EC2Instance", Key: "CPUBreathingRoom", IsNumber: true, Value: wrapperspb.String("10"), PreventPinning: true, Unit: "%"},
-	{Service: "EC2Instance", Key: "MemoryBreathingRoom", IsNumber: true, Value: wrapperspb.String("10"), PreventPinning: true, Unit: "%"},
+	{Service: "EC2Instance", Key: "MemoryBreathingRoom", IsNumber: true, Value: wrapperspb.String("5"), PreventPinning: true, Unit: "%"},
 	{Service: "EC2Instance", Key: "NetworkBreathingRoom", IsNumber: true, Value: wrapperspb.String("10"), PreventPinning: true, Unit: "%"},
 	{Service: "EC2Instance", Key: "ObservabilityTimePeriod", Value: wrapperspb.String("7"), PreventPinning: true, Unit: "days", PossibleValues: []string{"7"}},
 	{Service: "EC2Instance", Key: "RuntimeInterval", Value: wrapperspb.String("730"), PreventPinning: true, Unit: "hours", PossibleValues: []string{"730"}},
@@ -52,6 +52,6 @@ var DefaultRDSPreferences = []*golang.PreferenceItem{
 	{Service: "RDSInstance", Key: "StorageIopsBreathingRoom", IsNumber: true, Value: wrapperspb.String("10"), PreventPinning: true, Unit: "%"},
 	{Service: "RDSInstance", Key: "StorageSizeBreathingRoom", IsNumber: true, Value: wrapperspb.String("10"), PreventPinning: true, Unit: "%"},
 	{Service: "RDSInstance", Key: "NetworkBreathingRoom", IsNumber: true, Value: wrapperspb.String("10"), PreventPinning: true, Unit: "%"},
-	{Service: "RDSInstance", Key: "MemoryBreathingRoom", IsNumber: true, Value: wrapperspb.String("10"), PreventPinning: true, Unit: "%"},
+	{Service: "RDSInstance", Key: "MemoryBreathingRoom", IsNumber: true, Value: wrapperspb.String("5"), PreventPinning: true, Unit: "%"},
 	{Service: "RDSInstance", Key: "CpuBreathingRoom", IsNumber: true, Value: wrapperspb.String("10"), PreventPinning: true, Unit: "%"},
 }
