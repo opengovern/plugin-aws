@@ -156,7 +156,6 @@ func (i EC2InstanceItem) EBSVolumeDevice(v types.Volume, vs kaytu.EBSVolumeRecom
 		Key:     "Throughput (MB/s)",
 		Current: fmt.Sprintf("%.2f", vs.Current.Throughput()),
 		Average: utils.PNetworkThroughputMbps(vs.Throughput.Avg),
-		Max:     utils.PNetworkThroughputMbps(vs.Throughput.Max),
 	}
 	baselineThroughputProp := &golang.Property{
 		Key:     "  Baseline Throughput",
