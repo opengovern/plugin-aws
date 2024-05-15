@@ -7,6 +7,7 @@ import (
 	"github.com/kaytu-io/kaytu/pkg/plugin/proto/src/golang"
 	"github.com/kaytu-io/kaytu/pkg/utils"
 	"github.com/kaytu-io/plugin-aws/plugin/kaytu"
+	"strings"
 )
 
 type RDSInstanceItem struct {
@@ -86,6 +87,12 @@ func (i RDSInstanceItem) RDSInstanceDevice() []*golang.Device {
 		Current: utils.SizeByteToGB(i.Wastage.RightSizing.Current.StorageSize),
 		Average: utils.StorageUsagePercentageByFreeSpace(i.Wastage.RightSizing.FreeStorageBytes.Avg, i.Wastage.RightSizing.Current.StorageSize),
 		Max:     utils.StorageUsagePercentageByFreeSpace(i.Wastage.RightSizing.FreeStorageBytes.Min, i.Wastage.RightSizing.Current.StorageSize),
+	}
+	if strings.Contains(strings.ToLower(i.Wastage.RightSizing.Current.Engine), "aurora") {
+		avgPercentage := (*i.Wastage.RightSizing.VolumeBytesUsed.Avg / (1024.0 * 1024.0 * 1024.0)) / float64(*i.Wastage.RightSizing.Current.StorageSize)
+		maxPercentage := (*i.Wastage.RightSizing.VolumeBytesUsed.Max / (1024.0 * 1024.0 * 1024.0)) / float64(*i.Wastage.RightSizing.Current.StorageSize)
+		storageSizeProperty.Average = utils.Percentage(&avgPercentage)
+		storageSizeProperty.Max = utils.Percentage(&maxPercentage)
 	}
 	storageIOPSProperty := &golang.Property{
 		Key:     "IOPS",
