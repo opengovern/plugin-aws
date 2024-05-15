@@ -64,11 +64,11 @@ func (i RDSInstanceItem) RDSInstanceDevice() []*golang.Device {
 		Max:     utils.Percentage(i.Wastage.RightSizing.VCPU.Max),
 	}
 	processorProperty := &golang.Property{
-		Key:     "  Processor(s)",
+		Key:     "Processor(s)",
 		Current: i.Wastage.RightSizing.Current.Processor,
 	}
 	architectureProperty := &golang.Property{
-		Key:     "  Architecture",
+		Key:     "Architecture",
 		Current: i.Wastage.RightSizing.Current.Architecture,
 	}
 	memoryProperty := &golang.Property{
