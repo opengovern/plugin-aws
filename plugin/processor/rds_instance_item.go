@@ -63,6 +63,14 @@ func (i RDSInstanceItem) RDSInstanceDevice() []*golang.Device {
 		Average: utils.Percentage(i.Wastage.RightSizing.VCPU.Avg),
 		Max:     utils.Percentage(i.Wastage.RightSizing.VCPU.Max),
 	}
+	processorProperty := &golang.Property{
+		Key:     "  Processor(s)",
+		Current: i.Wastage.RightSizing.Current.Processor,
+	}
+	architectureProperty := &golang.Property{
+		Key:     "  Architecture",
+		Current: i.Wastage.RightSizing.Current.Architecture,
+	}
 	memoryProperty := &golang.Property{
 		Key:     "Memory",
 		Current: fmt.Sprintf("%d GiB", i.Wastage.RightSizing.Current.MemoryGb),
@@ -103,6 +111,8 @@ func (i RDSInstanceItem) RDSInstanceDevice() []*golang.Device {
 	}
 
 	if i.Wastage.RightSizing.Recommended != nil {
+		processorProperty.Recommended = i.Wastage.RightSizing.Recommended.Processor
+		architectureProperty.Recommended = i.Wastage.RightSizing.Recommended.Architecture
 		ec2InstanceCompute.RightSizedCost = i.Wastage.RightSizing.Recommended.ComputeCost
 		ec2InstanceStorage.RightSizedCost = i.Wastage.RightSizing.Recommended.StorageCost
 		regionProperty.Recommended = i.Wastage.RightSizing.Recommended.Region
@@ -138,6 +148,8 @@ func (i RDSInstanceItem) RDSInstanceDevice() []*golang.Device {
 	//})
 	ec2InstanceCompute.Properties = append(ec2InstanceCompute.Properties, vCPUProperty)
 	ec2InstanceCompute.Properties = append(ec2InstanceCompute.Properties, memoryProperty)
+	ec2InstanceCompute.Properties = append(ec2InstanceCompute.Properties, processorProperty)
+	ec2InstanceCompute.Properties = append(ec2InstanceCompute.Properties, architectureProperty)
 	//ec2Instance.Properties = append(ec2Instance.Properties, &golang.Property{
 	//	Key: "Storage",
 	//})
