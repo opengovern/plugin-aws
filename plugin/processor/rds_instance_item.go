@@ -89,8 +89,8 @@ func (i RDSInstanceItem) RDSInstanceDevice() []*golang.Device {
 		Max:     utils.StorageUsagePercentageByFreeSpace(i.Wastage.RightSizing.FreeStorageBytes.Min, i.Wastage.RightSizing.Current.StorageSize),
 	}
 	if strings.Contains(strings.ToLower(i.Wastage.RightSizing.Current.Engine), "aurora") {
-		avgPercentage := (*i.Wastage.RightSizing.VolumeBytesUsed.Avg / (1024.0 * 1024.0 * 1024.0)) / float64(*i.Wastage.RightSizing.Current.StorageSize)
-		maxPercentage := (*i.Wastage.RightSizing.VolumeBytesUsed.Max / (1024.0 * 1024.0 * 1024.0)) / float64(*i.Wastage.RightSizing.Current.StorageSize)
+		avgPercentage := (*i.Wastage.RightSizing.VolumeBytesUsed.Avg / (1024.0 * 1024.0 * 1024.0)) / float64(*i.Wastage.RightSizing.Current.StorageSize) * 100
+		maxPercentage := (*i.Wastage.RightSizing.VolumeBytesUsed.Max / (1024.0 * 1024.0 * 1024.0)) / float64(*i.Wastage.RightSizing.Current.StorageSize) * 100
 		storageSizeProperty.Average = utils.Percentage(&avgPercentage)
 		storageSizeProperty.Max = utils.Percentage(&maxPercentage)
 	}
