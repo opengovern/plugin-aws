@@ -122,3 +122,24 @@ func (s *AWS) ListRDSInstance(region string) ([]rdstype.DBInstance, error) {
 	}
 	return dbs, nil
 }
+
+func (s *AWS) ListRDSClusters(region string) ([]rdstype.DBCluster, error) {
+	localCfg := s.cfg
+	localCfg.Region = region
+
+	var dbs []rdstype.DBCluster
+	ctx := context.Background()
+	client := rds.NewFromConfig(localCfg)
+	paginator := rds.NewDescribeDBClustersPaginator(client, &rds.DescribeDBClustersInput{})
+	for paginator.HasMorePages() {
+		page, err := paginator.NextPage(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, r := range page.DBClusters {
+			dbs = append(dbs, r)
+		}
+	}
+	return dbs, nil
+}
