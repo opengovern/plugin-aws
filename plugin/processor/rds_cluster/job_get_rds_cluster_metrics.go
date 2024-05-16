@@ -40,6 +40,7 @@ func (j *GetRDSClusterMetricsJob) Run() error {
 
 	allMetrics := map[string]map[string][]types2.Datapoint{}
 	for _, instance := range j.instances {
+		isAurora := j.cluster.DBClusterIdentifier != nil && strings.Contains(strings.ToLower(*j.cluster.Engine), "aurora")
 		allMetrics[utils.HashString(*instance.DBInstanceIdentifier)] = map[string][]types2.Datapoint{}
 		cwMetrics, err := j.processor.metricProvider.GetMetrics(
 			j.region,
@@ -66,55 +67,102 @@ func (j *GetRDSClusterMetricsJob) Run() error {
 			return err
 		}
 
-		volumeThroughput, err := j.processor.metricProvider.GetMetrics(
-			j.region,
-			"AWS/RDS",
-			[]string{
-				"ReadThroughput",
-				"WriteThroughput",
-			},
-			map[string][]string{
-				"DBInstanceIdentifier": {*instance.DBInstanceIdentifier},
-			},
-			startTime, endTime,
-			time.Hour,
-			[]types2.Statistic{
-				types2.StatisticSum,
-			},
-		)
-		if err != nil {
-			return err
+		var volumeThroughput map[string][]types2.Datapoint
+		if !isAurora {
+			volumeThroughput, err = j.processor.metricProvider.GetMetrics(
+				j.region,
+				"AWS/RDS",
+				[]string{
+					"ReadThroughput",
+					"WriteThroughput",
+				},
+				map[string][]string{
+					"DBInstanceIdentifier": {*instance.DBInstanceIdentifier},
+				},
+				startTime, endTime,
+				time.Hour,
+				[]types2.Statistic{
+					types2.StatisticSum,
+				},
+			)
+			if err != nil {
+				return err
+			}
+		} else {
+			volumeThroughput, err = j.processor.metricProvider.GetMetrics(
+				j.region,
+				"AWS/RDS",
+				[]string{
+					"VolumeReadIOPs",
+					"VolumeWriteIOPs",
+				},
+				map[string][]string{
+					"DBClusterIdentifier": {*instance.DBClusterIdentifier},
+				},
+				startTime, endTime,
+				time.Hour,
+				[]types2.Statistic{
+					types2.StatisticSum,
+				},
+			)
+			if err != nil {
+				return err
+			}
 		}
 
 		for k, val := range volumeThroughput {
 			volumeThroughput[k] = aws.GetDatapointsAvgFromSum(val, int32(time.Hour/time.Second))
 		}
 
-		iopsMetrics, err := j.processor.metricProvider.GetDayByDayMetrics(
-			j.region,
-			"AWS/RDS",
-			[]string{
-				"ReadIOPS",
-				"WriteIOPS",
-			},
-			map[string][]string{
-				"DBInstanceIdentifier": {*instance.DBInstanceIdentifier},
-			},
-			7,
-			time.Minute,
-			[]types2.Statistic{
-				types2.StatisticSum,
-			},
-		)
-		if err != nil {
-			return err
+		var iopsMetrics map[string][]types2.Datapoint
+
+		if !isAurora {
+			iopsMetrics, err = j.processor.metricProvider.GetDayByDayMetrics(
+				j.region,
+				"AWS/RDS",
+				[]string{
+					"ReadIOPS",
+					"WriteIOPS",
+				},
+				map[string][]string{
+					"DBInstanceIdentifier": {*instance.DBInstanceIdentifier},
+				},
+				7,
+				time.Minute,
+				[]types2.Statistic{
+					types2.StatisticSum,
+				},
+			)
+			if err != nil {
+				return err
+			}
+		} else {
+			iopsMetrics, err = j.processor.metricProvider.GetDayByDayMetrics(
+				j.region,
+				"AWS/RDS",
+				[]string{
+					"ReadIOPS",
+					"WriteIOPS",
+				},
+				map[string][]string{
+					"DBClusterIdentifier": {*instance.DBInstanceIdentifier},
+				},
+				7,
+				time.Minute,
+				[]types2.Statistic{
+					types2.StatisticSum,
+				},
+			)
+			if err != nil {
+				return err
+			}
 		}
 		for k, val := range iopsMetrics {
 			iopsMetrics[k] = aws.GetDatapointsAvgFromSum(val, int32(time.Minute/time.Second))
 		}
 
 		var clusterMetrics map[string][]types2.Datapoint
-		if j.cluster.DBClusterIdentifier != nil && strings.Contains(strings.ToLower(*j.cluster.Engine), "aurora") {
+		if isAurora {
 			clusterMetrics, err = j.processor.metricProvider.GetMetrics(
 				j.region,
 				"AWS/RDS",
