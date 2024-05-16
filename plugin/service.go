@@ -5,9 +5,7 @@ import (
 	"fmt"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/kaytu-io/kaytu/pkg/plugin/proto/src/golang"
-	"github.com/kaytu-io/kaytu/pkg/plugin/sdk"
 	awsConfig "github.com/kaytu-io/plugin-aws/plugin/aws"
-	"github.com/kaytu-io/plugin-aws/plugin/kaytu"
 	"github.com/kaytu-io/plugin-aws/plugin/preferences"
 	processor2 "github.com/kaytu-io/plugin-aws/plugin/processor"
 	"github.com/kaytu-io/plugin-aws/plugin/version"
@@ -63,7 +61,7 @@ func (p *AWSPlugin) SetStream(stream golang.Plugin_RegisterClient) {
 	p.stream = stream
 }
 
-func (p *AWSPlugin) StartProcess(command string, flags map[string]string, kaytuAccessToken string, jobQueue *sdk.JobQueue) error {
+func (p *AWSPlugin) StartProcess(command string, flags map[string]string, kaytuAccessToken string) error {
 	profile := flags["profile"]
 	cfg, err := awsConfig.GetConfig(context.Background(), "", "", "", "", &profile, nil)
 	if err != nil {
@@ -81,11 +79,6 @@ func (p *AWSPlugin) StartProcess(command string, flags map[string]string, kaytuA
 	}
 
 	identification, err := awsPrv.Identify()
-	if err != nil {
-		return err
-	}
-
-	configurations, err := kaytu.ConfigurationRequest()
 	if err != nil {
 		return err
 	}
@@ -140,14 +133,15 @@ func (p *AWSPlugin) StartProcess(command string, flags map[string]string, kaytuA
 			kaytuAccessToken,
 		)
 	} else if command == "rds-instance" {
-		p.processor = processor2.NewRDSProcessor(
+		p.processor = processor2.NewRDSInstanceProcessor(
 			awsPrv,
 			cloudWatch,
 			identification,
+			publishJobResult,
+			publishError,
 			publishOptimizationItem,
+			publishResultsReady,
 			kaytuAccessToken,
-			jobQueue,
-			configurations,
 		)
 	} else {
 		return fmt.Errorf("invalid command: %s", command)

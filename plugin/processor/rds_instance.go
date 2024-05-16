@@ -1,0 +1,482 @@
+package processor
+
+import (
+	"fmt"
+	types2 "github.com/aws/aws-sdk-go-v2/service/cloudwatch/types"
+	"github.com/aws/aws-sdk-go-v2/service/rds/types"
+	"github.com/google/uuid"
+	"github.com/kaytu-io/kaytu/pkg/plugin/proto/src/golang"
+	"github.com/kaytu-io/kaytu/pkg/utils"
+	"github.com/kaytu-io/kaytu/preferences"
+	"github.com/kaytu-io/plugin-aws/plugin/aws"
+	"github.com/kaytu-io/plugin-aws/plugin/kaytu"
+	preferences2 "github.com/kaytu-io/plugin-aws/plugin/preferences"
+	"github.com/kaytu-io/plugin-aws/plugin/version"
+	"os"
+	"strings"
+	"sync"
+	"time"
+)
+
+type RDSInstanceProcessor struct {
+	provider       *aws.AWS
+	metricProvider *aws.CloudWatch
+	identification map[string]string
+
+	processWastageChan chan RDSInstanceItem
+	items              map[string]RDSInstanceItem
+
+	publishJob              func(result *golang.JobResult) *golang.JobResult
+	publishError            func(error)
+	publishOptimizationItem func(item *golang.OptimizationItem)
+	publishResultsReady     func(bool)
+	kaytuAcccessToken       string
+
+	processRegionJobsFinished      map[string]bool
+	processRegionJobsFinishedMutex sync.RWMutex
+
+	lazyLoadCounter int
+	lazyLoadMutex   sync.RWMutex
+}
+
+func NewRDSInstanceProcessor(
+	provider *aws.AWS,
+	metricProvider *aws.CloudWatch,
+	identification map[string]string,
+	publishJob func(result *golang.JobResult) *golang.JobResult,
+	publishError func(error),
+	publishOptimizationItem func(item *golang.OptimizationItem),
+	publishResultsReady func(bool),
+	kaytuAcccessToken string,
+) *RDSInstanceProcessor {
+	r := &RDSInstanceProcessor{
+		provider:                  provider,
+		metricProvider:            metricProvider,
+		identification:            identification,
+		processWastageChan:        make(chan RDSInstanceItem, 1000),
+		items:                     map[string]RDSInstanceItem{},
+		publishJob:                publishJob,
+		publishError:              publishError,
+		publishOptimizationItem:   publishOptimizationItem,
+		publishResultsReady:       publishResultsReady,
+		kaytuAcccessToken:         kaytuAcccessToken,
+		processRegionJobsFinished: map[string]bool{},
+	}
+	for i := 0; i < 4; i++ {
+		go r.ProcessWastages()
+	}
+	go r.ProcessAllRegions()
+	r.processRegionJobsFinishedMutex.Lock()
+	r.processRegionJobsFinished["start"] = false
+	r.processRegionJobsFinishedMutex.Unlock()
+
+	go r.SendResultsReadyMessage()
+	return r
+}
+
+func (m *RDSInstanceProcessor) ProcessAllRegions() {
+	defer func() {
+		if r := recover(); r != nil {
+			m.publishError(fmt.Errorf("%v", r))
+		}
+	}()
+
+	configuration, err := kaytu.ConfigurationRequest()
+	if err != nil {
+		m.publishError(err)
+		return
+	}
+
+	job := m.publishJob(&golang.JobResult{Id: "list_rds_all_regions", Description: "Listing all available regions"})
+	job.Done = true
+	regions, err := m.provider.ListAllRegions()
+	if err != nil {
+		job.FailureMessage = err.Error()
+		m.publishJob(job)
+		return
+	}
+	m.publishJob(job)
+
+	wg := sync.WaitGroup{}
+	wg.Add(len(regions))
+	for _, region := range regions {
+		region := region
+		m.processRegionJobsFinishedMutex.Lock()
+		m.processRegionJobsFinished[region] = false
+		m.processRegionJobsFinished["start"] = true
+		m.processRegionJobsFinishedMutex.Unlock()
+		go func() {
+			defer wg.Done()
+			m.ProcessRegion(region, configuration)
+		}()
+	}
+	wg.Wait()
+}
+
+func (m *RDSInstanceProcessor) ProcessRegion(region string, configuration *kaytu.Configuration) {
+	defer func() {
+		m.processRegionJobsFinishedMutex.Lock()
+		m.processRegionJobsFinished[region] = true
+		m.processRegionJobsFinishedMutex.Unlock()
+		if r := recover(); r != nil {
+			m.publishError(fmt.Errorf("%v", r))
+		}
+	}()
+
+	job := m.publishJob(&golang.JobResult{Id: fmt.Sprintf("region_rds_instances_%s", region), Description: "Listing all rds instances in " + region})
+	job.Done = true
+
+	instances, err := m.provider.ListRDSInstance(region)
+	if err != nil {
+		job.FailureMessage = err.Error()
+		m.publishJob(job)
+		return
+	}
+	m.publishJob(job)
+
+	for _, instance := range instances {
+		oi := RDSInstanceItem{
+			Instance:            instance,
+			Region:              region,
+			OptimizationLoading: true,
+			LazyLoadingEnabled:  false,
+			Preferences:         preferences2.DefaultRDSPreferences,
+		}
+
+		if !oi.Skipped {
+			m.lazyLoadMutex.Lock()
+			m.lazyLoadCounter++
+			if m.lazyLoadCounter > configuration.RDSLazyLoad {
+				oi.LazyLoadingEnabled = true
+			}
+			m.lazyLoadMutex.Unlock()
+		}
+
+		if !oi.Skipped {
+
+			var clusterType kaytu.AwsRdsClusterType
+			multiAZ := oi.Instance.MultiAZ != nil && *oi.Instance.MultiAZ
+			readableStandbys := oi.Instance.ReplicaMode == types.ReplicaModeOpenReadOnly
+			if multiAZ && readableStandbys {
+				clusterType = kaytu.AwsRdsClusterTypeMultiAzTwoInstance
+			} else if multiAZ {
+				clusterType = kaytu.AwsRdsClusterTypeMultiAzOneInstance
+			} else {
+				clusterType = kaytu.AwsRdsClusterTypeSingleInstance
+			}
+
+			req := kaytu.AwsRdsWastageRequest{
+				RequestId:      uuid.New().String(),
+				CliVersion:     version.VERSION,
+				Identification: m.identification,
+				Instance: kaytu.AwsRds{
+					HashedInstanceId:                   utils.HashString(*oi.Instance.DBInstanceIdentifier),
+					AvailabilityZone:                   *oi.Instance.AvailabilityZone,
+					InstanceType:                       *oi.Instance.DBInstanceClass,
+					Engine:                             *oi.Instance.Engine,
+					EngineVersion:                      *oi.Instance.EngineVersion,
+					LicenseModel:                       *oi.Instance.LicenseModel,
+					BackupRetentionPeriod:              oi.Instance.BackupRetentionPeriod,
+					ClusterType:                        clusterType,
+					PerformanceInsightsEnabled:         *oi.Instance.PerformanceInsightsEnabled,
+					PerformanceInsightsRetentionPeriod: oi.Instance.PerformanceInsightsRetentionPeriod,
+					StorageType:                        oi.Instance.StorageType,
+					StorageSize:                        oi.Instance.AllocatedStorage,
+					StorageIops:                        oi.Instance.Iops,
+				},
+				Metrics:     oi.Metrics,
+				Region:      oi.Region,
+				Preferences: preferences.Export(oi.Preferences),
+				Loading:     true,
+			}
+			if oi.Instance.StorageThroughput != nil {
+				floatThroughput := float64(*oi.Instance.StorageThroughput)
+				req.Instance.StorageThroughput = &floatThroughput
+			}
+			_, err := kaytu.RDSInstanceWastageRequest(req, m.kaytuAcccessToken)
+			if err != nil {
+				if strings.Contains(err.Error(), "please login") {
+					fmt.Println(err.Error())
+					os.Exit(1)
+					return
+				}
+				job.FailureMessage = err.Error()
+				m.publishJob(job)
+				return
+			}
+		}
+
+		// just to show the loading
+		m.items[*oi.Instance.DBInstanceIdentifier] = oi
+		m.publishOptimizationItem(oi.ToOptimizationItem())
+	}
+
+	for _, instance := range instances {
+		if i, ok := m.items[*instance.DBInstanceIdentifier]; ok && i.LazyLoadingEnabled {
+			continue
+		}
+
+		m.processDBInstance(instance, region)
+	}
+}
+func (m *RDSInstanceProcessor) processDBInstance(instance types.DBInstance, region string) {
+	imjob := m.publishJob(&golang.JobResult{Id: fmt.Sprintf("rds_instance_%s_metrics", *instance.DBInstanceIdentifier), Description: fmt.Sprintf("getting metrics of %s", *instance.DBInstanceIdentifier)})
+	imjob.Done = true
+	startTime := time.Now().Add(-24 * 7 * time.Hour)
+	endTime := time.Now()
+	instanceMetrics := map[string][]types2.Datapoint{}
+	cwMetrics, err := m.metricProvider.GetMetrics(
+		region,
+		"AWS/RDS",
+		[]string{
+			"CPUUtilization",
+			"FreeableMemory",
+			"FreeStorageSpace",
+			"NetworkReceiveThroughput",
+			"NetworkTransmitThroughput",
+		},
+		map[string][]string{
+			"DBInstanceIdentifier": {*instance.DBInstanceIdentifier},
+		},
+		startTime, endTime,
+		time.Hour,
+		[]types2.Statistic{
+			types2.StatisticAverage,
+			types2.StatisticMaximum,
+			types2.StatisticMinimum,
+		},
+	)
+	if err != nil {
+		imjob.FailureMessage = err.Error()
+		m.publishJob(imjob)
+		return
+	}
+
+	volumeThroughput, err := m.metricProvider.GetMetrics(
+		region,
+		"AWS/RDS",
+		[]string{
+			"ReadThroughput",
+			"WriteThroughput",
+		},
+		map[string][]string{
+			"DBInstanceIdentifier": {*instance.DBInstanceIdentifier},
+		},
+		startTime, endTime,
+		time.Hour,
+		[]types2.Statistic{
+			types2.StatisticSum,
+		},
+	)
+	if err != nil {
+		imjob.FailureMessage = err.Error()
+		m.publishJob(imjob)
+		return
+	}
+
+	for k, val := range volumeThroughput {
+		volumeThroughput[k] = aws.GetDatapointsAvgFromSum(val, int32(time.Hour/time.Second))
+	}
+
+	iopsMetrics, err := m.metricProvider.GetDayByDayMetrics(
+		region,
+		"AWS/RDS",
+		[]string{
+			"ReadIOPS",
+			"WriteIOPS",
+		},
+		map[string][]string{
+			"DBInstanceIdentifier": {*instance.DBInstanceIdentifier},
+		},
+		7,
+		time.Minute,
+		[]types2.Statistic{
+			types2.StatisticSum,
+		},
+	)
+	if err != nil {
+		imjob.FailureMessage = err.Error()
+		m.publishJob(imjob)
+		return
+	}
+	for k, val := range iopsMetrics {
+		iopsMetrics[k] = aws.GetDatapointsAvgFromSum(val, int32(time.Minute/time.Second))
+	}
+
+	var clusterMetrics map[string][]types2.Datapoint
+	if instance.DBClusterIdentifier != nil && strings.Contains(strings.ToLower(*instance.Engine), "aurora") {
+		clusterMetrics, err = m.metricProvider.GetMetrics(
+			region,
+			"AWS/RDS",
+			[]string{
+				"VolumeBytesUsed",
+			},
+			map[string][]string{
+				"DBClusterIdentifier": {*instance.DBClusterIdentifier},
+			},
+			startTime, endTime,
+			time.Hour,
+			[]types2.Statistic{
+				types2.StatisticAverage,
+				types2.StatisticMaximum,
+			},
+		)
+		if err != nil {
+			imjob.FailureMessage = err.Error()
+			m.publishJob(imjob)
+			return
+		}
+	}
+
+	for k, v := range cwMetrics {
+		instanceMetrics[k] = v
+	}
+	for k, v := range iopsMetrics {
+		instanceMetrics[k] = v
+	}
+	for k, v := range volumeThroughput {
+		instanceMetrics[k] = v
+	}
+	if clusterMetrics != nil {
+		for k, v := range clusterMetrics {
+			instanceMetrics[k] = v
+		}
+	}
+	m.publishJob(imjob)
+
+	oi := RDSInstanceItem{
+		Instance:            instance,
+		Metrics:             instanceMetrics,
+		Region:              region,
+		OptimizationLoading: true,
+		LazyLoadingEnabled:  false,
+		Preferences:         preferences2.DefaultRDSPreferences,
+	}
+
+	m.items[*oi.Instance.DBInstanceIdentifier] = oi
+	m.publishOptimizationItem(oi.ToOptimizationItem())
+	if !oi.Skipped && !oi.LazyLoadingEnabled {
+		m.processWastageChan <- oi
+	}
+}
+func (m *RDSInstanceProcessor) ProcessWastages() {
+	for item := range m.processWastageChan {
+		m.WastageWorker(item)
+	}
+}
+
+func (m *RDSInstanceProcessor) SendResultsReadyMessage() {
+	for {
+		ready := true
+		time.Sleep(time.Second)
+		m.processRegionJobsFinishedMutex.RLock()
+		for _, f := range m.processRegionJobsFinished {
+			if !f {
+				ready = false
+				break
+			}
+		}
+		m.processRegionJobsFinishedMutex.RUnlock()
+		for _, i := range m.items {
+			if i.OptimizationLoading {
+				ready = false
+				break
+			}
+		}
+		m.publishResultsReady(ready)
+	}
+}
+
+func (m *RDSInstanceProcessor) WastageWorker(item RDSInstanceItem) {
+	defer func() {
+		if r := recover(); r != nil {
+			m.publishError(fmt.Errorf("%v", r))
+		}
+	}()
+
+	if item.LazyLoadingEnabled {
+		m.processDBInstance(item.Instance, item.Region)
+	}
+
+	job := m.publishJob(&golang.JobResult{Id: fmt.Sprintf("wastage_rds_%s", *item.Instance.DBInstanceIdentifier), Description: fmt.Sprintf("Evaluating RDS usage data for %s", *item.Instance.DBInstanceIdentifier)})
+	job.Done = true
+
+	var clusterType kaytu.AwsRdsClusterType
+	multiAZ := item.Instance.MultiAZ != nil && *item.Instance.MultiAZ
+	readableStandbys := item.Instance.ReplicaMode == types.ReplicaModeOpenReadOnly
+	if multiAZ && readableStandbys {
+		clusterType = kaytu.AwsRdsClusterTypeMultiAzTwoInstance
+	} else if multiAZ {
+		clusterType = kaytu.AwsRdsClusterTypeMultiAzOneInstance
+	} else {
+		clusterType = kaytu.AwsRdsClusterTypeSingleInstance
+	}
+
+	req := kaytu.AwsRdsWastageRequest{
+		RequestId:      uuid.New().String(),
+		CliVersion:     version.VERSION,
+		Identification: m.identification,
+		Instance: kaytu.AwsRds{
+			HashedInstanceId:                   utils.HashString(*item.Instance.DBInstanceIdentifier),
+			AvailabilityZone:                   *item.Instance.AvailabilityZone,
+			InstanceType:                       *item.Instance.DBInstanceClass,
+			Engine:                             *item.Instance.Engine,
+			EngineVersion:                      *item.Instance.EngineVersion,
+			LicenseModel:                       *item.Instance.LicenseModel,
+			BackupRetentionPeriod:              item.Instance.BackupRetentionPeriod,
+			ClusterType:                        clusterType,
+			PerformanceInsightsEnabled:         *item.Instance.PerformanceInsightsEnabled,
+			PerformanceInsightsRetentionPeriod: item.Instance.PerformanceInsightsRetentionPeriod,
+			StorageType:                        item.Instance.StorageType,
+			StorageSize:                        item.Instance.AllocatedStorage,
+			StorageIops:                        item.Instance.Iops,
+		},
+		Metrics:     item.Metrics,
+		Region:      item.Region,
+		Preferences: preferences.Export(item.Preferences),
+		Loading:     false,
+	}
+	if item.Instance.StorageThroughput != nil {
+		floatThroughput := float64(*item.Instance.StorageThroughput)
+		req.Instance.StorageThroughput = &floatThroughput
+	}
+	res, err := kaytu.RDSInstanceWastageRequest(req, m.kaytuAcccessToken)
+	if err != nil {
+		if strings.Contains(err.Error(), "please login") {
+			fmt.Println(err.Error())
+			os.Exit(1)
+			return
+		}
+		job.FailureMessage = err.Error()
+		m.publishJob(job)
+		return
+	}
+	m.publishJob(job)
+
+	if res.RightSizing.Current.InstanceType == "" {
+		item.OptimizationLoading = false
+		m.items[*item.Instance.DBInstanceIdentifier] = item
+		m.publishOptimizationItem(item.ToOptimizationItem())
+		return
+	}
+
+	item = RDSInstanceItem{
+		Instance:            item.Instance,
+		Region:              item.Region,
+		OptimizationLoading: false,
+		Preferences:         item.Preferences,
+		Skipped:             false,
+		SkipReason:          "",
+		Metrics:             item.Metrics,
+		Wastage:             *res,
+	}
+	m.items[*item.Instance.DBInstanceIdentifier] = item
+	m.publishOptimizationItem(item.ToOptimizationItem())
+}
+
+func (m *RDSInstanceProcessor) ReEvaluate(id string, items []*golang.PreferenceItem) {
+	v := m.items[id]
+	v.Preferences = items
+	m.items[id] = v
+	m.processWastageChan <- m.items[id]
+}
