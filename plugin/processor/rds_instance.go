@@ -234,8 +234,6 @@ func (m *RDSInstanceProcessor) processDBInstance(instance types.DBInstance, regi
 			"FreeStorageSpace",
 			"NetworkReceiveThroughput",
 			"NetworkTransmitThroughput",
-			"ReadThroughput",
-			"WriteThroughput",
 		},
 		map[string][]string{
 			"DBInstanceIdentifier": {*instance.DBInstanceIdentifier},
@@ -253,6 +251,33 @@ func (m *RDSInstanceProcessor) processDBInstance(instance types.DBInstance, regi
 		m.publishJob(imjob)
 		return
 	}
+
+	volumeThroughput, err := m.metricProvider.GetMetrics(
+		region,
+		"AWS/RDS",
+		[]string{
+			"ReadThroughput",
+			"WriteThroughput",
+		},
+		map[string][]string{
+			"DBInstanceIdentifier": {*instance.DBInstanceIdentifier},
+		},
+		startTime, endTime,
+		time.Hour,
+		[]types2.Statistic{
+			types2.StatisticSum,
+		},
+	)
+	if err != nil {
+		imjob.FailureMessage = err.Error()
+		m.publishJob(imjob)
+		return
+	}
+
+	for k, val := range volumeThroughput {
+		volumeThroughput[k] = aws.GetDatapointsAvgFromSum(val, int32(time.Hour/time.Second))
+	}
+
 	iopsMetrics, err := m.metricProvider.GetDayByDayMetrics(
 		region,
 		"AWS/RDS",
@@ -307,6 +332,9 @@ func (m *RDSInstanceProcessor) processDBInstance(instance types.DBInstance, regi
 		instanceMetrics[k] = v
 	}
 	for k, v := range iopsMetrics {
+		instanceMetrics[k] = v
+	}
+	for k, v := range volumeThroughput {
 		instanceMetrics[k] = v
 	}
 	if clusterMetrics != nil {
