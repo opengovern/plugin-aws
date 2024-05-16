@@ -36,8 +36,8 @@ type EC2Volume struct {
 }
 
 type EC2InstanceWastageRequest struct {
-	RequestId      string                                   `json:"requestId"`
-	CliVersion     string                                   `json:"cliVersion"`
+	RequestId      *string                                  `json:"requestId"`
+	CliVersion     *string                                  `json:"cliVersion"`
 	Identification map[string]string                        `json:"identification"`
 	Instance       EC2Instance                              `json:"instance"`
 	Volumes        []EC2Volume                              `json:"volumes"`
@@ -66,9 +66,10 @@ type RightsizingEC2Instance struct {
 }
 
 type Usage struct {
-	Avg *float64
-	Min *float64
-	Max *float64
+	Avg  *float64
+	Min  *float64
+	Max  *float64
+	Last *types2.Datapoint
 }
 
 type RightSizingRecommendation struct {
@@ -92,22 +93,6 @@ type RightsizingEBSVolume struct {
 	BaselineThroughput    float64          `json:"baselineThroughput"`
 	ProvisionedThroughput *float64         `json:"provisionedThroughput"`
 	Cost                  float64          `json:"cost"`
-}
-
-func (v RightsizingEBSVolume) IOPS() int32 {
-	val := v.BaselineIOPS
-	if v.ProvisionedIOPS != nil {
-		val += *v.ProvisionedIOPS
-	}
-	return val
-}
-
-func (v RightsizingEBSVolume) Throughput() float64 {
-	val := v.BaselineThroughput
-	if v.ProvisionedThroughput != nil {
-		val += *v.ProvisionedThroughput
-	}
-	return val
 }
 
 type EBSVolumeRecommendation struct {

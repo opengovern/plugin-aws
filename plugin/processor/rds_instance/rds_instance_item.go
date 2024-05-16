@@ -1,4 +1,4 @@
-package processor
+package rds_instance
 
 import (
 	"fmt"
@@ -113,8 +113,8 @@ func (i RDSInstanceItem) RDSInstanceDevice() []*golang.Device {
 	storageThroughputProperty := &golang.Property{
 		Key:     "Throughput",
 		Current: utils.PStorageThroughputMbps(i.Wastage.RightSizing.Current.StorageThroughput),
-		Average: utils.PStorageThroughputMbps(i.Wastage.RightSizing.StorageThroughputBytes.Avg),
-		Max:     utils.PStorageThroughputMbps(i.Wastage.RightSizing.StorageThroughputBytes.Max),
+		Average: utils.PStorageThroughputMbps(i.Wastage.RightSizing.StorageThroughput.Avg),
+		Max:     utils.PStorageThroughputMbps(i.Wastage.RightSizing.StorageThroughput.Max),
 	}
 
 	if i.Wastage.RightSizing.Recommended != nil {
