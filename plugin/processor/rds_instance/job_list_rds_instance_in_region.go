@@ -106,6 +106,10 @@ func (j *ListRDSInstancesInRegionJob) Run() error {
 	}
 
 	for _, instance := range instances {
+		if instance.DBClusterIdentifier != nil {
+			continue
+		}
+
 		if i, ok := j.processor.items[*instance.DBInstanceIdentifier]; ok && i.LazyLoadingEnabled {
 			continue
 		}
