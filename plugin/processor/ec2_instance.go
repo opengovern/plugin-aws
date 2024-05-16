@@ -196,10 +196,9 @@ func (m *EC2InstanceProcessor) processRegion(region string, configuration *kaytu
 			if oi.Instance.PlatformDetails != nil {
 				platform = *oi.Instance.PlatformDetails
 			}
-			reqID := uuid.New().String()
 			_, err := kaytu2.Ec2InstanceWastageRequest(kaytu2.EC2InstanceWastageRequest{
-				RequestId:      &reqID,
-				CliVersion:     &version.VERSION,
+				RequestId:      uuid.New().String(),
+				CliVersion:     version.VERSION,
 				Identification: m.identification,
 				Instance: kaytu2.EC2Instance{
 					HashedInstanceId:  utils.HashString(*oi.Instance.InstanceId),
@@ -506,11 +505,10 @@ func (m *EC2InstanceProcessor) wastageWorker(item EC2InstanceItem) {
 	for _, v := range item.Volumes {
 		volumes = append(volumes, toEBSVolume(v))
 	}
-	reqID := uuid.New().String()
 
 	res, err := kaytu2.Ec2InstanceWastageRequest(kaytu2.EC2InstanceWastageRequest{
-		RequestId:      &reqID,
-		CliVersion:     &version.VERSION,
+		RequestId:      uuid.New().String(),
+		CliVersion:     version.VERSION,
 		Identification: m.identification,
 		Instance: kaytu2.EC2Instance{
 			HashedInstanceId:  utils.HashString(*item.Instance.InstanceId),
