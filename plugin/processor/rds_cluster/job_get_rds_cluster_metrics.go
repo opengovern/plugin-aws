@@ -4,6 +4,7 @@ import (
 	"fmt"
 	types2 "github.com/aws/aws-sdk-go-v2/service/cloudwatch/types"
 	"github.com/aws/aws-sdk-go-v2/service/rds/types"
+	"github.com/kaytu-io/kaytu/pkg/utils"
 	"github.com/kaytu-io/plugin-aws/plugin/aws"
 	preferences2 "github.com/kaytu-io/plugin-aws/plugin/preferences"
 	"strings"
@@ -39,7 +40,7 @@ func (j *GetRDSClusterMetricsJob) Run() error {
 
 	allMetrics := map[string]map[string][]types2.Datapoint{}
 	for _, instance := range j.instances {
-		allMetrics[*instance.DBInstanceIdentifier] = map[string][]types2.Datapoint{}
+		allMetrics[utils.HashString(*instance.DBInstanceIdentifier)] = map[string][]types2.Datapoint{}
 		cwMetrics, err := j.processor.metricProvider.GetMetrics(
 			j.region,
 			"AWS/RDS",
@@ -136,17 +137,17 @@ func (j *GetRDSClusterMetricsJob) Run() error {
 		}
 
 		for k, v := range cwMetrics {
-			allMetrics[*instance.DBInstanceIdentifier][k] = v
+			allMetrics[utils.HashString(*instance.DBInstanceIdentifier)][k] = v
 		}
 		for k, v := range iopsMetrics {
-			allMetrics[*instance.DBInstanceIdentifier][k] = v
+			allMetrics[utils.HashString(*instance.DBInstanceIdentifier)][k] = v
 		}
 		for k, v := range volumeThroughput {
-			allMetrics[*instance.DBInstanceIdentifier][k] = v
+			allMetrics[utils.HashString(*instance.DBInstanceIdentifier)][k] = v
 		}
 		if clusterMetrics != nil {
 			for k, v := range clusterMetrics {
-				allMetrics[*instance.DBInstanceIdentifier][k] = v
+				allMetrics[utils.HashString(*instance.DBInstanceIdentifier)][k] = v
 			}
 		}
 	}
