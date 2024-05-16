@@ -343,7 +343,7 @@ func (m *EC2InstanceProcessor) processInstance(instance types.Instance, region s
 
 	volumeMetrics := map[string]map[string][]types2.Datapoint{}
 	for _, v := range volumeIDs {
-		volumeThroughput, err := m.metricProvider.GetMetrics(
+		volumeMetricsMap, err := m.metricProvider.GetMetrics(
 			region,
 			"AWS/EBS",
 			[]string{
@@ -365,8 +365,8 @@ func (m *EC2InstanceProcessor) processInstance(instance types.Instance, region s
 			return
 		}
 
-		for k, val := range volumeThroughput {
-			volumeThroughput[k] = aws2.GetDatapointsAvgFromSum(val, int32(time.Hour/time.Second))
+		for k, val := range volumeMetricsMap {
+			volumeMetricsMap[k] = aws2.GetDatapointsAvgFromSum(val, int32(time.Hour/time.Second))
 		}
 
 		volumeIops, err := m.metricProvider.GetDayByDayMetrics(
@@ -393,12 +393,12 @@ func (m *EC2InstanceProcessor) processInstance(instance types.Instance, region s
 
 		for k, val := range volumeIops {
 			val = aws2.GetDatapointsAvgFromSum(val, int32(time.Minute/time.Second))
-			volumeThroughput[k] = val
+			volumeMetricsMap[k] = val
 		}
 
 		// Hash v
 		hashedId := utils.HashString(v)
-		volumeMetrics[hashedId] = volumeThroughput
+		volumeMetrics[hashedId] = volumeMetricsMap
 	}
 	m.publishJob(ivjob)
 
