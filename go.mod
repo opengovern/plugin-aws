@@ -12,7 +12,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/rds v1.78.0
 	github.com/aws/aws-sdk-go-v2/service/sts v1.28.6
 	github.com/google/uuid v1.6.0
-	github.com/kaytu-io/kaytu v0.7.10-rc.0
+	github.com/kaytu-io/kaytu v0.8.8-rc.0.0.20240516143538-b22e31112fb1
 	github.com/stretchr/testify v1.9.0
 	golang.org/x/net v0.24.0
 	google.golang.org/protobuf v1.34.0
@@ -46,5 +46,3 @@ require (
 replace github.com/spf13/cobra => github.com/spf13/cobra v1.4.0
 
 replace github.com/gruntwork-io/terragrunt => github.com/infracost/terragrunt v0.47.1-0.20231103101711-77c5e7d4d795
-
-replace github.com/kaytu-io/kaytu v0.7.10-rc.0 => ../kaytu

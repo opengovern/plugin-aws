@@ -16,7 +16,7 @@ type Processor struct {
 	kaytuAcccessToken       string
 	jobQueue                *sdk.JobQueue
 	configuration           *kaytu.Configuration
-	lazyloadCounter         *sdk.LazyLoadCounter
+	lazyloadCounter         *sdk.SafeCounter
 }
 
 func NewProcessor(
@@ -27,7 +27,7 @@ func NewProcessor(
 	kaytuAcccessToken string,
 	jobQueue *sdk.JobQueue,
 	configurations *kaytu.Configuration,
-	lazyloadCounter *sdk.LazyLoadCounter,
+	lazyloadCounter *sdk.SafeCounter,
 ) *Processor {
 	r := &Processor{
 		provider:                provider,

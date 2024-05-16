@@ -149,6 +149,9 @@ func (p *AWSPlugin) StartProcess(command string, flags map[string]string, kaytuA
 			jobQueue,
 			configurations,
 		)
+		jobQueue.SetOnFinish(func() {
+			publishResultsReady(true)
+		})
 	} else {
 		return fmt.Errorf("invalid command: %s", command)
 	}
