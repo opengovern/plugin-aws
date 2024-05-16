@@ -274,6 +274,9 @@ func (m *RDSInstanceProcessor) processDBInstance(instance types.DBInstance, regi
 		m.publishJob(imjob)
 		return
 	}
+	for k, val := range iopsMetrics {
+		iopsMetrics[k] = aws.GetDatapointsAvgFromSum(val, int32(time.Minute/time.Second))
+	}
 
 	var clusterMetrics map[string][]types2.Datapoint
 	if instance.DBClusterIdentifier != nil && strings.Contains(strings.ToLower(*instance.Engine), "aurora") {
