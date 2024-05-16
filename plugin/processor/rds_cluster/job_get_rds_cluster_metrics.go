@@ -18,10 +18,11 @@ type GetRDSClusterMetricsJob struct {
 	processor *Processor
 }
 
-func NewGetRDSInstanceMetricsJob(processor *Processor, region string, instance types.DBCluster) *GetRDSClusterMetricsJob {
+func NewGetRDSInstanceMetricsJob(processor *Processor, region string, cluster types.DBCluster, instances []types.DBInstance) *GetRDSClusterMetricsJob {
 	return &GetRDSClusterMetricsJob{
 		processor: processor,
-		cluster:   instance,
+		cluster:   cluster,
+		instances: instances,
 		region:    region,
 	}
 }

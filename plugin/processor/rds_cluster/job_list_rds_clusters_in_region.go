@@ -24,14 +24,20 @@ func (j *ListRDSClustersInRegionJob) Description() string {
 	return fmt.Sprintf("Listing all RDS Clusters in %s", j.region)
 }
 func (j *ListRDSClustersInRegionJob) Run() error {
-	instances, err := j.processor.provider.ListRDSClusters(j.region)
+	clusters, err := j.processor.provider.ListRDSClusters(j.region)
 	if err != nil {
 		return err
 	}
 
-	for _, instance := range instances {
+	for _, cluster := range clusters {
+		instances, err := j.processor.provider.ListRDSInstanceByCluster(j.region, *cluster.DBClusterIdentifier)
+		if err != nil {
+			return err
+		}
+
 		oi := RDSClusterItem{
-			Cluster:             instance,
+			Cluster:             cluster,
+			Instances:           instances,
 			Region:              j.region,
 			OptimizationLoading: true,
 			LazyLoadingEnabled:  false,
@@ -96,12 +102,13 @@ func (j *ListRDSClustersInRegionJob) Run() error {
 		j.processor.publishOptimizationItem(oi.ToOptimizationItem())
 	}
 
-	for _, instance := range instances {
-		if i, ok := j.processor.items[*instance.DBClusterIdentifier]; ok && i.LazyLoadingEnabled {
+	for _, cluster := range clusters {
+		if i, ok := j.processor.items[*cluster.DBClusterIdentifier]; ok && i.LazyLoadingEnabled {
 			continue
 		}
 
-		j.processor.jobQueue.Push(NewGetRDSInstanceMetricsJob(j.processor, j.region, instance))
+		oi := j.processor.items[*cluster.DBClusterIdentifier]
+		j.processor.jobQueue.Push(NewGetRDSInstanceMetricsJob(j.processor, j.region, cluster, oi.Instances))
 	}
 
 	return nil

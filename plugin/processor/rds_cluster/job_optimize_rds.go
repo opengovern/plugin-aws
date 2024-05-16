@@ -30,7 +30,7 @@ func (j *OptimizeRDSClusterJob) Description() string {
 }
 func (j *OptimizeRDSClusterJob) Run() error {
 	if j.item.LazyLoadingEnabled {
-		j.processor.jobQueue.Push(NewGetRDSInstanceMetricsJob(j.processor, j.item.Region, j.item.Cluster))
+		j.processor.jobQueue.Push(NewGetRDSInstanceMetricsJob(j.processor, j.item.Region, j.item.Cluster, j.item.Instances))
 		return nil
 	}
 
