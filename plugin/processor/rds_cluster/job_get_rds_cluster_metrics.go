@@ -122,7 +122,7 @@ func (j *GetRDSClusterMetricsJob) Run() error {
 					"VolumeBytesUsed",
 				},
 				map[string][]string{
-					"DBInstanceIdentifier": {*instance.DBClusterIdentifier},
+					"DBInstanceIdentifier": {*instance.DBInstanceIdentifier},
 				},
 				startTime, endTime,
 				time.Hour,
