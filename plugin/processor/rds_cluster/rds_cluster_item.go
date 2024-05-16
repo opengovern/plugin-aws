@@ -32,76 +32,76 @@ func (c RDSClusterItem) RDSInstanceDevice() []*golang.Device {
 			DeviceId:     fmt.Sprintf("%s-compute", *i.DBInstanceIdentifier),
 			ResourceType: "RDS Instance Compute",
 			Runtime:      "730 hours",
-			CurrentCost:  c.Wastage.RightSizing[*i.DBInstanceIdentifier].Current.ComputeCost,
+			CurrentCost:  c.Wastage.RightSizing[utils.HashString(*i.DBInstanceIdentifier)].Current.ComputeCost,
 		}
 		ec2InstanceStorage := &golang.Device{
 			Properties:   nil,
 			DeviceId:     fmt.Sprintf("%s-storage", *i.DBInstanceIdentifier),
 			ResourceType: "RDS Instance Storage",
 			Runtime:      "730 hours",
-			CurrentCost:  c.Wastage.RightSizing[*i.DBInstanceIdentifier].Current.StorageCost,
+			CurrentCost:  c.Wastage.RightSizing[utils.HashString(*i.DBInstanceIdentifier)].Current.StorageCost,
 		}
 		regionProperty := &golang.Property{
 			Key:     "Region",
-			Current: c.Wastage.RightSizing[*i.DBInstanceIdentifier].Current.Region,
+			Current: c.Wastage.RightSizing[utils.HashString(*i.DBInstanceIdentifier)].Current.Region,
 		}
 		instanceSizeProperty := &golang.Property{
 			Key:     "Instance Size",
-			Current: c.Wastage.RightSizing[*i.DBInstanceIdentifier].Current.InstanceType,
+			Current: c.Wastage.RightSizing[utils.HashString(*i.DBInstanceIdentifier)].Current.InstanceType,
 		}
 		engineProperty := &golang.Property{
 			Key:     "Engine",
-			Current: c.Wastage.RightSizing[*i.DBInstanceIdentifier].Current.Engine,
+			Current: c.Wastage.RightSizing[utils.HashString(*i.DBInstanceIdentifier)].Current.Engine,
 		}
 		engineVerProperty := &golang.Property{
 			Key:     "Engine Version",
-			Current: c.Wastage.RightSizing[*i.DBInstanceIdentifier].Current.EngineVersion,
+			Current: c.Wastage.RightSizing[utils.HashString(*i.DBInstanceIdentifier)].Current.EngineVersion,
 		}
 		clusterTypeProperty := &golang.Property{
 			Key:     "Cluster Type",
-			Current: string(c.Wastage.RightSizing[*i.DBInstanceIdentifier].Current.ClusterType),
+			Current: string(c.Wastage.RightSizing[utils.HashString(*i.DBInstanceIdentifier)].Current.ClusterType),
 		}
 		vCPUProperty := &golang.Property{
 			Key:     "vCPU",
-			Current: fmt.Sprintf("%d", c.Wastage.RightSizing[*i.DBInstanceIdentifier].Current.VCPU),
-			Average: utils.Percentage(c.Wastage.RightSizing[*i.DBInstanceIdentifier].VCPU.Avg),
-			Max:     utils.Percentage(c.Wastage.RightSizing[*i.DBInstanceIdentifier].VCPU.Max),
+			Current: fmt.Sprintf("%d", c.Wastage.RightSizing[utils.HashString(*i.DBInstanceIdentifier)].Current.VCPU),
+			Average: utils.Percentage(c.Wastage.RightSizing[utils.HashString(*i.DBInstanceIdentifier)].VCPU.Avg),
+			Max:     utils.Percentage(c.Wastage.RightSizing[utils.HashString(*i.DBInstanceIdentifier)].VCPU.Max),
 		}
 		processorProperty := &golang.Property{
 			Key:     "Processor(s)",
-			Current: c.Wastage.RightSizing[*i.DBInstanceIdentifier].Current.Processor,
+			Current: c.Wastage.RightSizing[utils.HashString(*i.DBInstanceIdentifier)].Current.Processor,
 		}
 		architectureProperty := &golang.Property{
 			Key:     "Architecture",
-			Current: c.Wastage.RightSizing[*i.DBInstanceIdentifier].Current.Architecture,
+			Current: c.Wastage.RightSizing[utils.HashString(*i.DBInstanceIdentifier)].Current.Architecture,
 		}
 		memoryProperty := &golang.Property{
 			Key:     "Memory",
-			Current: fmt.Sprintf("%d GiB", c.Wastage.RightSizing[*i.DBInstanceIdentifier].Current.MemoryGb),
-			Average: utils.MemoryUsagePercentageByFreeSpace(c.Wastage.RightSizing[*i.DBInstanceIdentifier].FreeMemoryBytes.Avg, float64(c.Wastage.RightSizing[*i.DBInstanceIdentifier].Current.MemoryGb)),
-			Max:     utils.MemoryUsagePercentageByFreeSpace(c.Wastage.RightSizing[*i.DBInstanceIdentifier].FreeMemoryBytes.Min, float64(c.Wastage.RightSizing[*i.DBInstanceIdentifier].Current.MemoryGb)),
+			Current: fmt.Sprintf("%d GiB", c.Wastage.RightSizing[utils.HashString(*i.DBInstanceIdentifier)].Current.MemoryGb),
+			Average: utils.MemoryUsagePercentageByFreeSpace(c.Wastage.RightSizing[utils.HashString(*i.DBInstanceIdentifier)].FreeMemoryBytes.Avg, float64(c.Wastage.RightSizing[utils.HashString(*i.DBInstanceIdentifier)].Current.MemoryGb)),
+			Max:     utils.MemoryUsagePercentageByFreeSpace(c.Wastage.RightSizing[utils.HashString(*i.DBInstanceIdentifier)].FreeMemoryBytes.Min, float64(c.Wastage.RightSizing[utils.HashString(*i.DBInstanceIdentifier)].Current.MemoryGb)),
 		}
 		storageTypeProperty := &golang.Property{
 			Key:     "Type",
-			Current: utils.PString(c.Wastage.RightSizing[*i.DBInstanceIdentifier].Current.StorageType),
+			Current: utils.PString(c.Wastage.RightSizing[utils.HashString(*i.DBInstanceIdentifier)].Current.StorageType),
 		}
 		storageSizeProperty := &golang.Property{
 			Key:     "Size",
-			Current: utils.SizeByteToGB(c.Wastage.RightSizing[*i.DBInstanceIdentifier].Current.StorageSize),
-			Average: utils.StorageUsagePercentageByFreeSpace(c.Wastage.RightSizing[*i.DBInstanceIdentifier].FreeStorageBytes.Avg, c.Wastage.RightSizing[*i.DBInstanceIdentifier].Current.StorageSize),
-			Max:     utils.StorageUsagePercentageByFreeSpace(c.Wastage.RightSizing[*i.DBInstanceIdentifier].FreeStorageBytes.Min, c.Wastage.RightSizing[*i.DBInstanceIdentifier].Current.StorageSize),
+			Current: utils.SizeByteToGB(c.Wastage.RightSizing[utils.HashString(*i.DBInstanceIdentifier)].Current.StorageSize),
+			Average: utils.StorageUsagePercentageByFreeSpace(c.Wastage.RightSizing[utils.HashString(*i.DBInstanceIdentifier)].FreeStorageBytes.Avg, c.Wastage.RightSizing[utils.HashString(*i.DBInstanceIdentifier)].Current.StorageSize),
+			Max:     utils.StorageUsagePercentageByFreeSpace(c.Wastage.RightSizing[utils.HashString(*i.DBInstanceIdentifier)].FreeStorageBytes.Min, c.Wastage.RightSizing[utils.HashString(*i.DBInstanceIdentifier)].Current.StorageSize),
 		}
-		if strings.Contains(strings.ToLower(c.Wastage.RightSizing[*i.DBInstanceIdentifier].Current.Engine), "aurora") {
-			avgPercentage := (*c.Wastage.RightSizing[*i.DBInstanceIdentifier].VolumeBytesUsed.Avg / (1024.0 * 1024.0 * 1024.0)) / float64(*c.Wastage.RightSizing[*i.DBInstanceIdentifier].Current.StorageSize) * 100
-			maxPercentage := (*c.Wastage.RightSizing[*i.DBInstanceIdentifier].VolumeBytesUsed.Max / (1024.0 * 1024.0 * 1024.0)) / float64(*c.Wastage.RightSizing[*i.DBInstanceIdentifier].Current.StorageSize) * 100
+		if strings.Contains(strings.ToLower(c.Wastage.RightSizing[utils.HashString(*i.DBInstanceIdentifier)].Current.Engine), "aurora") {
+			avgPercentage := (*c.Wastage.RightSizing[utils.HashString(*i.DBInstanceIdentifier)].VolumeBytesUsed.Avg / (1024.0 * 1024.0 * 1024.0)) / float64(*c.Wastage.RightSizing[utils.HashString(*i.DBInstanceIdentifier)].Current.StorageSize) * 100
+			maxPercentage := (*c.Wastage.RightSizing[utils.HashString(*i.DBInstanceIdentifier)].VolumeBytesUsed.Max / (1024.0 * 1024.0 * 1024.0)) / float64(*c.Wastage.RightSizing[utils.HashString(*i.DBInstanceIdentifier)].Current.StorageSize) * 100
 			storageSizeProperty.Average = utils.Percentage(&avgPercentage)
 			storageSizeProperty.Max = utils.Percentage(&maxPercentage)
 		}
 		storageIOPSProperty := &golang.Property{
 			Key:     "IOPS",
-			Current: utils.PInt32ToString(c.Wastage.RightSizing[*i.DBInstanceIdentifier].Current.StorageIops),
-			Average: fmt.Sprintf("%s io/s", utils.PFloat64ToString(c.Wastage.RightSizing[*i.DBInstanceIdentifier].StorageIops.Avg)),
-			Max:     fmt.Sprintf("%s io/s", utils.PFloat64ToString(c.Wastage.RightSizing[*i.DBInstanceIdentifier].StorageIops.Max)),
+			Current: utils.PInt32ToString(c.Wastage.RightSizing[utils.HashString(*i.DBInstanceIdentifier)].Current.StorageIops),
+			Average: fmt.Sprintf("%s io/s", utils.PFloat64ToString(c.Wastage.RightSizing[utils.HashString(*i.DBInstanceIdentifier)].StorageIops.Avg)),
+			Max:     fmt.Sprintf("%s io/s", utils.PFloat64ToString(c.Wastage.RightSizing[utils.HashString(*i.DBInstanceIdentifier)].StorageIops.Max)),
 		}
 		if storageIOPSProperty.Current != "" {
 			storageIOPSProperty.Current = fmt.Sprintf("%s io/s", storageIOPSProperty.Current)
@@ -109,45 +109,45 @@ func (c RDSClusterItem) RDSInstanceDevice() []*golang.Device {
 			storageIOPSProperty.Current = "N/A"
 		}
 		// current number is in MB/s, so we need to convert it to bytes/s so matches the other values
-		if c.Wastage.RightSizing[*i.DBInstanceIdentifier].Current.StorageThroughput != nil {
-			v := c.Wastage.RightSizing[*i.DBInstanceIdentifier]
+		if c.Wastage.RightSizing[utils.HashString(*i.DBInstanceIdentifier)].Current.StorageThroughput != nil {
+			v := c.Wastage.RightSizing[utils.HashString(*i.DBInstanceIdentifier)]
 			tmp := *v.Current.StorageThroughput * 1024.0 * 1024.0
 			v.Current.StorageThroughput = &tmp
-			c.Wastage.RightSizing[*i.DBInstanceIdentifier] = v
+			c.Wastage.RightSizing[utils.HashString(*i.DBInstanceIdentifier)] = v
 		}
 		storageThroughputProperty := &golang.Property{
 			Key:     "Throughput",
-			Current: utils.PStorageThroughputMbps(c.Wastage.RightSizing[*i.DBInstanceIdentifier].Current.StorageThroughput),
-			Average: utils.PStorageThroughputMbps(c.Wastage.RightSizing[*i.DBInstanceIdentifier].StorageThroughput.Avg),
-			Max:     utils.PStorageThroughputMbps(c.Wastage.RightSizing[*i.DBInstanceIdentifier].StorageThroughput.Max),
+			Current: utils.PStorageThroughputMbps(c.Wastage.RightSizing[utils.HashString(*i.DBInstanceIdentifier)].Current.StorageThroughput),
+			Average: utils.PStorageThroughputMbps(c.Wastage.RightSizing[utils.HashString(*i.DBInstanceIdentifier)].StorageThroughput.Avg),
+			Max:     utils.PStorageThroughputMbps(c.Wastage.RightSizing[utils.HashString(*i.DBInstanceIdentifier)].StorageThroughput.Max),
 		}
 
-		if c.Wastage.RightSizing[*i.DBInstanceIdentifier].Recommended != nil {
-			processorProperty.Recommended = c.Wastage.RightSizing[*i.DBInstanceIdentifier].Recommended.Processor
-			architectureProperty.Recommended = c.Wastage.RightSizing[*i.DBInstanceIdentifier].Recommended.Architecture
-			ec2InstanceCompute.RightSizedCost = c.Wastage.RightSizing[*i.DBInstanceIdentifier].Recommended.ComputeCost
-			ec2InstanceStorage.RightSizedCost = c.Wastage.RightSizing[*i.DBInstanceIdentifier].Recommended.StorageCost
-			regionProperty.Recommended = c.Wastage.RightSizing[*i.DBInstanceIdentifier].Recommended.Region
-			instanceSizeProperty.Recommended = c.Wastage.RightSizing[*i.DBInstanceIdentifier].Recommended.InstanceType
-			engineProperty.Recommended = c.Wastage.RightSizing[*i.DBInstanceIdentifier].Recommended.Engine
-			engineVerProperty.Recommended = c.Wastage.RightSizing[*i.DBInstanceIdentifier].Recommended.EngineVersion
-			clusterTypeProperty.Recommended = string(c.Wastage.RightSizing[*i.DBInstanceIdentifier].Recommended.ClusterType)
-			vCPUProperty.Recommended = fmt.Sprintf("%d", c.Wastage.RightSizing[*i.DBInstanceIdentifier].Recommended.VCPU)
-			memoryProperty.Recommended = fmt.Sprintf("%d GiB", c.Wastage.RightSizing[*i.DBInstanceIdentifier].Recommended.MemoryGb)
-			storageTypeProperty.Recommended = utils.PString(c.Wastage.RightSizing[*i.DBInstanceIdentifier].Recommended.StorageType)
-			storageSizeProperty.Recommended = utils.SizeByteToGB(c.Wastage.RightSizing[*i.DBInstanceIdentifier].Recommended.StorageSize)
-			storageIOPSProperty.Recommended = utils.PInt32ToString(c.Wastage.RightSizing[*i.DBInstanceIdentifier].Recommended.StorageIops)
+		if c.Wastage.RightSizing[utils.HashString(*i.DBInstanceIdentifier)].Recommended != nil {
+			processorProperty.Recommended = c.Wastage.RightSizing[utils.HashString(*i.DBInstanceIdentifier)].Recommended.Processor
+			architectureProperty.Recommended = c.Wastage.RightSizing[utils.HashString(*i.DBInstanceIdentifier)].Recommended.Architecture
+			ec2InstanceCompute.RightSizedCost = c.Wastage.RightSizing[utils.HashString(*i.DBInstanceIdentifier)].Recommended.ComputeCost
+			ec2InstanceStorage.RightSizedCost = c.Wastage.RightSizing[utils.HashString(*i.DBInstanceIdentifier)].Recommended.StorageCost
+			regionProperty.Recommended = c.Wastage.RightSizing[utils.HashString(*i.DBInstanceIdentifier)].Recommended.Region
+			instanceSizeProperty.Recommended = c.Wastage.RightSizing[utils.HashString(*i.DBInstanceIdentifier)].Recommended.InstanceType
+			engineProperty.Recommended = c.Wastage.RightSizing[utils.HashString(*i.DBInstanceIdentifier)].Recommended.Engine
+			engineVerProperty.Recommended = c.Wastage.RightSizing[utils.HashString(*i.DBInstanceIdentifier)].Recommended.EngineVersion
+			clusterTypeProperty.Recommended = string(c.Wastage.RightSizing[utils.HashString(*i.DBInstanceIdentifier)].Recommended.ClusterType)
+			vCPUProperty.Recommended = fmt.Sprintf("%d", c.Wastage.RightSizing[utils.HashString(*i.DBInstanceIdentifier)].Recommended.VCPU)
+			memoryProperty.Recommended = fmt.Sprintf("%d GiB", c.Wastage.RightSizing[utils.HashString(*i.DBInstanceIdentifier)].Recommended.MemoryGb)
+			storageTypeProperty.Recommended = utils.PString(c.Wastage.RightSizing[utils.HashString(*i.DBInstanceIdentifier)].Recommended.StorageType)
+			storageSizeProperty.Recommended = utils.SizeByteToGB(c.Wastage.RightSizing[utils.HashString(*i.DBInstanceIdentifier)].Recommended.StorageSize)
+			storageIOPSProperty.Recommended = utils.PInt32ToString(c.Wastage.RightSizing[utils.HashString(*i.DBInstanceIdentifier)].Recommended.StorageIops)
 			if storageIOPSProperty.Recommended != "" {
 				storageIOPSProperty.Recommended = fmt.Sprintf("%s io/s", storageIOPSProperty.Recommended)
 			} else {
 				storageIOPSProperty.Recommended = "N/A"
 			}
 			// Recommended number is in MB/s, so we need to convert it to bytes/s so matches the other values
-			if c.Wastage.RightSizing[*i.DBInstanceIdentifier].Recommended.StorageThroughput != nil {
-				v := *c.Wastage.RightSizing[*i.DBInstanceIdentifier].Recommended.StorageThroughput * 1024.0 * 1024.0
-				c.Wastage.RightSizing[*i.DBInstanceIdentifier].Recommended.StorageThroughput = &v
+			if c.Wastage.RightSizing[utils.HashString(*i.DBInstanceIdentifier)].Recommended.StorageThroughput != nil {
+				v := *c.Wastage.RightSizing[utils.HashString(*i.DBInstanceIdentifier)].Recommended.StorageThroughput * 1024.0 * 1024.0
+				c.Wastage.RightSizing[utils.HashString(*i.DBInstanceIdentifier)].Recommended.StorageThroughput = &v
 			}
-			storageThroughputProperty.Recommended = utils.PStorageThroughputMbps(c.Wastage.RightSizing[*i.DBInstanceIdentifier].Recommended.StorageThroughput)
+			storageThroughputProperty.Recommended = utils.PStorageThroughputMbps(c.Wastage.RightSizing[utils.HashString(*i.DBInstanceIdentifier)].Recommended.StorageThroughput)
 		}
 		ec2InstanceCompute.Properties = append(ec2InstanceCompute.Properties, regionProperty)
 		ec2InstanceCompute.Properties = append(ec2InstanceCompute.Properties, instanceSizeProperty)
@@ -187,7 +187,7 @@ func (i RDSClusterItem) ToOptimizationItem() *golang.OptimizationItem {
 		Region:             i.Region,
 		Devices:            i.Devices(),
 		Preferences:        i.Preferences,
-		Description:        "", //c.Wastage.RightSizing[*i.DBInstanceIdentifier].Description, //TODO-Saleh
+		Description:        "", //c.Wastage.RightSizing[utils.HashString(*i.DBInstanceIdentifier)].Description, //TODO-Saleh
 		Loading:            i.OptimizationLoading,
 		Skipped:            i.Skipped,
 		SkipReason:         i.SkipReason,
