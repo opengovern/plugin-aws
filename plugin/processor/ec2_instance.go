@@ -197,7 +197,7 @@ func (m *EC2InstanceProcessor) processRegion(region string, configuration *kaytu
 				platform = *oi.Instance.PlatformDetails
 			}
 			reqID := uuid.New().String()
-			_, err := kaytu2.Ec2InstanceWastageRequest(kaytu2.EC2InstanceWastageRequest{
+			req := kaytu2.EC2InstanceWastageRequest{
 				RequestId:      &reqID,
 				CliVersion:     &version.VERSION,
 				Identification: m.identification,
@@ -222,7 +222,8 @@ func (m *EC2InstanceProcessor) processRegion(region string, configuration *kaytu
 				Region:        oi.Region,
 				Preferences:   preferences.Export(oi.Preferences),
 				Loading:       true,
-			}, m.kaytuAcccessToken)
+			}
+			_, err := kaytu2.Ec2InstanceWastageRequest(req, m.kaytuAcccessToken)
 			if err != nil {
 				if strings.Contains(err.Error(), "please login") {
 					m.publishError(err)
@@ -279,13 +280,12 @@ func (m *EC2InstanceProcessor) processInstance(instance types.Instance, region s
 	startTime := time.Now().Add(-24 * 7 * time.Hour)
 	endTime := time.Now()
 	instanceMetrics := map[string][]types2.Datapoint{}
+
 	cwMetrics, err := m.metricProvider.GetMetrics(
 		region,
 		"AWS/EC2",
 		[]string{
 			"CPUUtilization",
-			"NetworkIn",
-			"NetworkOut",
 		},
 		map[string][]string{
 			"InstanceId": {*instance.InstanceId},
@@ -304,6 +304,32 @@ func (m *EC2InstanceProcessor) processInstance(instance types.Instance, region s
 	}
 	for k, v := range cwMetrics {
 		instanceMetrics[k] = v
+	}
+
+	cwPerSecondMetrics, err := m.metricProvider.GetMetrics(
+		region,
+		"AWS/EC2",
+		[]string{
+			"NetworkIn",
+			"NetworkOut",
+		},
+		map[string][]string{
+			"InstanceId": {*instance.InstanceId},
+		},
+		startTime, endTime,
+		time.Hour,
+		[]types2.Statistic{
+			types2.StatisticSum,
+		},
+	)
+	if err != nil {
+		imjob.FailureMessage = err.Error()
+		m.publishJob(imjob)
+		return
+	}
+	for k, v := range cwPerSecondMetrics {
+		cwPerSecondMetrics[k] = aws2.GetDatapointsAvgFromSum(v, int32(time.Hour/time.Second))
+		instanceMetrics[k] = cwPerSecondMetrics[k]
 	}
 
 	cwaMetrics, err := m.metricProvider.GetMetrics(
@@ -507,8 +533,7 @@ func (m *EC2InstanceProcessor) wastageWorker(item EC2InstanceItem) {
 		volumes = append(volumes, toEBSVolume(v))
 	}
 	reqID := uuid.New().String()
-
-	res, err := kaytu2.Ec2InstanceWastageRequest(kaytu2.EC2InstanceWastageRequest{
+	req := kaytu2.EC2InstanceWastageRequest{
 		RequestId:      &reqID,
 		CliVersion:     &version.VERSION,
 		Identification: m.identification,
@@ -533,7 +558,8 @@ func (m *EC2InstanceProcessor) wastageWorker(item EC2InstanceItem) {
 		Region:        item.Region,
 		Preferences:   preferences.Export(item.Preferences),
 		Loading:       false,
-	}, m.kaytuAcccessToken)
+	}
+	res, err := kaytu2.Ec2InstanceWastageRequest(req, m.kaytuAcccessToken)
 	if err != nil {
 		if strings.Contains(err.Error(), "please login") {
 			m.publishError(err)

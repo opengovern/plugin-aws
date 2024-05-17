@@ -76,6 +76,13 @@ func (i EC2InstanceItem) EC2InstanceDevice() *golang.Device {
 		Average: fmt.Sprintf("%s io/s", utils.PFloat64ToString(i.Wastage.RightSizing.EBSIops.Avg)),
 		Max:     fmt.Sprintf("%s io/s", utils.PFloat64ToString(i.Wastage.RightSizing.EBSIops.Max)),
 	}
+	if i.Wastage.RightSizing.EBSIops.Avg == nil {
+		iopsProperty.Average = ""
+	}
+	if i.Wastage.RightSizing.EBSIops.Max == nil {
+		iopsProperty.Max = ""
+	}
+
 	netThroughputProperty := &golang.Property{
 		Key:     "  Throughput",
 		Current: fmt.Sprintf("%s", i.Wastage.RightSizing.Current.NetworkThroughput),

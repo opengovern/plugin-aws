@@ -103,7 +103,13 @@ func (i RDSInstanceItem) RDSInstanceDevice() []*golang.Device {
 	if storageIOPSProperty.Current != "" {
 		storageIOPSProperty.Current = fmt.Sprintf("%s io/s", storageIOPSProperty.Current)
 	} else {
-		storageIOPSProperty.Current = "N/A"
+		storageIOPSProperty.Current = ""
+	}
+	if i.Wastage.RightSizing.StorageIops.Avg == nil {
+		storageIOPSProperty.Average = ""
+	}
+	if i.Wastage.RightSizing.StorageIops.Max == nil {
+		storageIOPSProperty.Max = ""
 	}
 	// current number is in MB/s, so we need to convert it to bytes/s so matches the other values
 	if i.Wastage.RightSizing.Current.StorageThroughput != nil {

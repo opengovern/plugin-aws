@@ -43,8 +43,6 @@ func (j *GetRDSInstanceMetricsJob) Run() error {
 			"CPUUtilization",
 			"FreeableMemory",
 			"FreeStorageSpace",
-			"NetworkReceiveThroughput",
-			"NetworkTransmitThroughput",
 		},
 		map[string][]string{
 			"DBInstanceIdentifier": {*j.instance.DBInstanceIdentifier},
@@ -61,12 +59,14 @@ func (j *GetRDSInstanceMetricsJob) Run() error {
 		return err
 	}
 
-	volumeThroughput, err := j.processor.metricProvider.GetMetrics(
+	throughputMetrics, err := j.processor.metricProvider.GetMetrics(
 		j.region,
 		"AWS/RDS",
 		[]string{
 			"ReadThroughput",
 			"WriteThroughput",
+			"NetworkReceiveThroughput",
+			"NetworkTransmitThroughput",
 		},
 		map[string][]string{
 			"DBInstanceIdentifier": {*j.instance.DBInstanceIdentifier},
@@ -81,8 +81,8 @@ func (j *GetRDSInstanceMetricsJob) Run() error {
 		return err
 	}
 
-	for k, val := range volumeThroughput {
-		volumeThroughput[k] = aws.GetDatapointsAvgFromSum(val, int32(time.Hour/time.Second))
+	for k, val := range throughputMetrics {
+		throughputMetrics[k] = aws.GetDatapointsAvgFromSum(val, int32(time.Hour/time.Second))
 	}
 
 	iopsMetrics, err := j.processor.metricProvider.GetDayByDayMetrics(
@@ -137,7 +137,7 @@ func (j *GetRDSInstanceMetricsJob) Run() error {
 	for k, v := range iopsMetrics {
 		instanceMetrics[k] = v
 	}
-	for k, v := range volumeThroughput {
+	for k, v := range throughputMetrics {
 		instanceMetrics[k] = v
 	}
 	if clusterMetrics != nil {
