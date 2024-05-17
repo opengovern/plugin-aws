@@ -54,6 +54,7 @@ func (p *AWSPlugin) GetConfig() golang.RegisterConfig {
 					},
 				},
 				DefaultPreferences: preferences.DefaultRDSPreferences,
+				LoginRequired:      true,
 			},
 		},
 	}
