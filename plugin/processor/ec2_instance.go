@@ -197,7 +197,7 @@ func (m *EC2InstanceProcessor) processRegion(region string, configuration *kaytu
 				platform = *oi.Instance.PlatformDetails
 			}
 			reqID := uuid.New().String()
-			_, err := kaytu2.Ec2InstanceWastageRequest(kaytu2.EC2InstanceWastageRequest{
+			req := kaytu2.EC2InstanceWastageRequest{
 				RequestId:      &reqID,
 				CliVersion:     &version.VERSION,
 				Identification: m.identification,
@@ -222,7 +222,8 @@ func (m *EC2InstanceProcessor) processRegion(region string, configuration *kaytu
 				Region:        oi.Region,
 				Preferences:   preferences.Export(oi.Preferences),
 				Loading:       true,
-			}, m.kaytuAcccessToken)
+			}
+			_, err := kaytu2.Ec2InstanceWastageRequest(req, m.kaytuAcccessToken)
 			if err != nil {
 				if strings.Contains(err.Error(), "please login") {
 					m.publishError(err)
@@ -532,8 +533,7 @@ func (m *EC2InstanceProcessor) wastageWorker(item EC2InstanceItem) {
 		volumes = append(volumes, toEBSVolume(v))
 	}
 	reqID := uuid.New().String()
-
-	res, err := kaytu2.Ec2InstanceWastageRequest(kaytu2.EC2InstanceWastageRequest{
+	req := kaytu2.EC2InstanceWastageRequest{
 		RequestId:      &reqID,
 		CliVersion:     &version.VERSION,
 		Identification: m.identification,
@@ -558,7 +558,8 @@ func (m *EC2InstanceProcessor) wastageWorker(item EC2InstanceItem) {
 		Region:        item.Region,
 		Preferences:   preferences.Export(item.Preferences),
 		Loading:       false,
-	}, m.kaytuAcccessToken)
+	}
+	res, err := kaytu2.Ec2InstanceWastageRequest(req, m.kaytuAcccessToken)
 	if err != nil {
 		if strings.Contains(err.Error(), "please login") {
 			m.publishError(err)
