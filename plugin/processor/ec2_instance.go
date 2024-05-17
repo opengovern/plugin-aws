@@ -279,13 +279,12 @@ func (m *EC2InstanceProcessor) processInstance(instance types.Instance, region s
 	startTime := time.Now().Add(-24 * 7 * time.Hour)
 	endTime := time.Now()
 	instanceMetrics := map[string][]types2.Datapoint{}
+
 	cwMetrics, err := m.metricProvider.GetMetrics(
 		region,
 		"AWS/EC2",
 		[]string{
 			"CPUUtilization",
-			"NetworkIn",
-			"NetworkOut",
 		},
 		map[string][]string{
 			"InstanceId": {*instance.InstanceId},
@@ -304,6 +303,32 @@ func (m *EC2InstanceProcessor) processInstance(instance types.Instance, region s
 	}
 	for k, v := range cwMetrics {
 		instanceMetrics[k] = v
+	}
+
+	cwPerSecondMetrics, err := m.metricProvider.GetMetrics(
+		region,
+		"AWS/EC2",
+		[]string{
+			"NetworkIn",
+			"NetworkOut",
+		},
+		map[string][]string{
+			"InstanceId": {*instance.InstanceId},
+		},
+		startTime, endTime,
+		time.Hour,
+		[]types2.Statistic{
+			types2.StatisticSum,
+		},
+	)
+	if err != nil {
+		imjob.FailureMessage = err.Error()
+		m.publishJob(imjob)
+		return
+	}
+	for k, v := range cwPerSecondMetrics {
+		cwPerSecondMetrics[k] = aws2.GetDatapointsAvgFromSum(v, int32(time.Hour/time.Second))
+		instanceMetrics[k] = cwPerSecondMetrics[k]
 	}
 
 	cwaMetrics, err := m.metricProvider.GetMetrics(
