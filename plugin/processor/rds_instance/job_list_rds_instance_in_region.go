@@ -101,7 +101,7 @@ func (j *ListRDSInstancesInRegionJob) Run() error {
 		}
 
 		// just to show the loading
-		j.processor.items[*oi.Instance.DBInstanceIdentifier] = oi
+		j.processor.items.Set(*oi.Instance.DBInstanceIdentifier, oi)
 		j.processor.publishOptimizationItem(oi.ToOptimizationItem())
 	}
 
@@ -110,7 +110,7 @@ func (j *ListRDSInstancesInRegionJob) Run() error {
 			continue
 		}
 
-		if i, ok := j.processor.items[*instance.DBInstanceIdentifier]; ok && i.LazyLoadingEnabled {
+		if i, ok := j.processor.items.Get(*instance.DBInstanceIdentifier); ok && i.LazyLoadingEnabled {
 			continue
 		}
 

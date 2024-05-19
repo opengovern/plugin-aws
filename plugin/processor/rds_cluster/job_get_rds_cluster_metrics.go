@@ -48,6 +48,31 @@ func (j *GetRDSClusterMetricsJob) Run() error {
 			[]string{
 				"CPUUtilization",
 				"FreeableMemory",
+			},
+			map[string][]string{
+				"DBInstanceIdentifier": {*instance.DBInstanceIdentifier},
+			},
+			startTime, endTime,
+			time.Hour,
+			nil,
+			[]string{"tm99"},
+		)
+		if err != nil {
+			return err
+		}
+		for k, v := range cwMetrics {
+			for idx, vv := range v {
+				tmp := vv.ExtendedStatistics["tm99"]
+				vv.Average = &tmp
+				v[idx] = vv
+			}
+			allMetrics[utils.HashString(*instance.DBInstanceIdentifier)][k] = v
+		}
+
+		cwMetrics, err = j.processor.metricProvider.GetMetrics(
+			j.region,
+			"AWS/RDS",
+			[]string{
 				"FreeStorageSpace",
 			},
 			map[string][]string{
@@ -60,9 +85,13 @@ func (j *GetRDSClusterMetricsJob) Run() error {
 				types2.StatisticMaximum,
 				types2.StatisticMinimum,
 			},
+			nil,
 		)
 		if err != nil {
 			return err
+		}
+		for k, v := range cwMetrics {
+			allMetrics[utils.HashString(*instance.DBInstanceIdentifier)][k] = v
 		}
 
 		cwPerSecondMetrics, err := j.processor.metricProvider.GetMetrics(
@@ -80,6 +109,7 @@ func (j *GetRDSClusterMetricsJob) Run() error {
 			[]types2.Statistic{
 				types2.StatisticSum,
 			},
+			nil,
 		)
 		if err != nil {
 			return err
@@ -107,6 +137,7 @@ func (j *GetRDSClusterMetricsJob) Run() error {
 				[]types2.Statistic{
 					types2.StatisticSum,
 				},
+				nil,
 			)
 			if err != nil {
 				return err
@@ -126,6 +157,7 @@ func (j *GetRDSClusterMetricsJob) Run() error {
 				[]types2.Statistic{
 					types2.StatisticSum,
 				},
+				nil,
 			)
 			if err != nil {
 				return err
@@ -146,6 +178,7 @@ func (j *GetRDSClusterMetricsJob) Run() error {
 				[]types2.Statistic{
 					types2.StatisticSum,
 				},
+				nil,
 			)
 			if err != nil {
 				return err
@@ -165,6 +198,7 @@ func (j *GetRDSClusterMetricsJob) Run() error {
 				[]types2.Statistic{
 					types2.StatisticSum,
 				},
+				nil,
 			)
 			if err != nil {
 				return err
@@ -184,6 +218,7 @@ func (j *GetRDSClusterMetricsJob) Run() error {
 					types2.StatisticAverage,
 					types2.StatisticMaximum,
 				},
+				nil,
 			)
 			if err != nil {
 				return err
@@ -228,7 +263,7 @@ func (j *GetRDSClusterMetricsJob) Run() error {
 		Metrics:             allMetrics,
 	}
 
-	j.processor.items[*oi.Cluster.DBClusterIdentifier] = oi
+	j.processor.items.Set(*oi.Cluster.DBClusterIdentifier, oi)
 	j.processor.publishOptimizationItem(oi.ToOptimizationItem())
 	if !oi.Skipped && !oi.LazyLoadingEnabled {
 		j.processor.jobQueue.Push(NewOptimizeRDSJob(j.processor, oi))

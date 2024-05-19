@@ -5,13 +5,14 @@ import (
 	"github.com/kaytu-io/kaytu/pkg/plugin/sdk"
 	"github.com/kaytu-io/plugin-aws/plugin/aws"
 	"github.com/kaytu-io/plugin-aws/plugin/kaytu"
+	util "github.com/kaytu-io/plugin-aws/utils"
 )
 
 type Processor struct {
 	provider                *aws.AWS
 	metricProvider          *aws.CloudWatch
 	identification          map[string]string
-	items                   map[string]RDSClusterItem
+	items                   util.ConcurrentMap[string, RDSClusterItem]
 	publishOptimizationItem func(item *golang.OptimizationItem)
 	kaytuAcccessToken       string
 	jobQueue                *sdk.JobQueue
@@ -33,7 +34,7 @@ func NewProcessor(
 		provider:                provider,
 		metricProvider:          metricProvider,
 		identification:          identification,
-		items:                   map[string]RDSClusterItem{},
+		items:                   util.NewMap[string, RDSClusterItem](),
 		publishOptimizationItem: publishOptimizationItem,
 		kaytuAcccessToken:       kaytuAcccessToken,
 		jobQueue:                jobQueue,
@@ -46,13 +47,13 @@ func NewProcessor(
 }
 
 func (m *Processor) ReEvaluate(id string, items []*golang.PreferenceItem) {
-	v := m.items[id]
+	v, _ := m.items.Get(id)
 	v.Preferences = items
-	m.items[id] = v
-	m.jobQueue.Push(NewOptimizeRDSJob(m, m.items[id]))
+	m.items.Set(id, v)
+	m.jobQueue.Push(NewOptimizeRDSJob(m, v))
 }
 
 func (m *Processor) HasItem(id string) bool {
-	_, ok := m.items[id]
+	_, ok := m.items.Get(id)
 	return ok
 }

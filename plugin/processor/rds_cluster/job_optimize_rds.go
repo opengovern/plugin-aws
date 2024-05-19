@@ -109,7 +109,7 @@ func (j *OptimizeRDSClusterJob) Run() error {
 		Metrics:             j.item.Metrics,
 		Wastage:             *res,
 	}
-	j.processor.items[*j.item.Cluster.DBClusterIdentifier] = j.item
+	j.processor.items.Set(*j.item.Cluster.DBClusterIdentifier, j.item)
 	j.processor.publishOptimizationItem(j.item.ToOptimizationItem())
 	return nil
 }

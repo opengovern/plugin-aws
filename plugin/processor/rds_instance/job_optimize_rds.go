@@ -81,7 +81,7 @@ func (j *OptimizeRDSInstanceJob) Run() error {
 
 	if res.RightSizing.Current.InstanceType == "" {
 		j.item.OptimizationLoading = false
-		j.processor.items[*j.item.Instance.DBInstanceIdentifier] = j.item
+		j.processor.items.Set(*j.item.Instance.DBInstanceIdentifier, j.item)
 		j.processor.publishOptimizationItem(j.item.ToOptimizationItem())
 		return nil
 	}
@@ -96,7 +96,7 @@ func (j *OptimizeRDSInstanceJob) Run() error {
 		Metrics:             j.item.Metrics,
 		Wastage:             *res,
 	}
-	j.processor.items[*j.item.Instance.DBInstanceIdentifier] = j.item
+	j.processor.items.Set(*j.item.Instance.DBInstanceIdentifier, j.item)
 	j.processor.publishOptimizationItem(j.item.ToOptimizationItem())
 	return nil
 }

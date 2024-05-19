@@ -54,6 +54,7 @@ func (j *GetRDSInstanceMetricsJob) Run() error {
 			types2.StatisticMaximum,
 			types2.StatisticMinimum,
 		},
+		nil,
 	)
 	if err != nil {
 		return err
@@ -76,6 +77,7 @@ func (j *GetRDSInstanceMetricsJob) Run() error {
 		[]types2.Statistic{
 			types2.StatisticSum,
 		},
+		nil,
 	)
 	if err != nil {
 		return err
@@ -100,6 +102,7 @@ func (j *GetRDSInstanceMetricsJob) Run() error {
 		[]types2.Statistic{
 			types2.StatisticSum,
 		},
+		nil,
 	)
 	if err != nil {
 		return err
@@ -125,6 +128,7 @@ func (j *GetRDSInstanceMetricsJob) Run() error {
 				types2.StatisticAverage,
 				types2.StatisticMaximum,
 			},
+			nil,
 		)
 		if err != nil {
 			return err
@@ -155,7 +159,7 @@ func (j *GetRDSInstanceMetricsJob) Run() error {
 		Preferences:         preferences2.DefaultRDSPreferences,
 	}
 
-	j.processor.items[*oi.Instance.DBInstanceIdentifier] = oi
+	j.processor.items.Set(*oi.Instance.DBInstanceIdentifier, oi)
 	j.processor.publishOptimizationItem(oi.ToOptimizationItem())
 	if !oi.Skipped && !oi.LazyLoadingEnabled {
 		j.processor.jobQueue.Push(NewOptimizeRDSJob(j.processor, oi))

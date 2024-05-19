@@ -114,16 +114,16 @@ func (j *ListRDSClustersInRegionJob) Run() error {
 		}
 
 		// just to show the loading
-		j.processor.items[*oi.Cluster.DBClusterIdentifier] = oi
+		j.processor.items.Set(*oi.Cluster.DBClusterIdentifier, oi)
 		j.processor.publishOptimizationItem(oi.ToOptimizationItem())
 	}
 
 	for _, cluster := range clusters {
-		if i, ok := j.processor.items[*cluster.DBClusterIdentifier]; ok && i.LazyLoadingEnabled {
+		if i, ok := j.processor.items.Get(*cluster.DBClusterIdentifier); ok && i.LazyLoadingEnabled {
 			continue
 		}
 
-		oi := j.processor.items[*cluster.DBClusterIdentifier]
+		oi, _ := j.processor.items.Get(*cluster.DBClusterIdentifier)
 		j.processor.jobQueue.Push(NewGetRDSInstanceMetricsJob(j.processor, j.region, cluster, oi.Instances))
 	}
 

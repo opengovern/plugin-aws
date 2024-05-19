@@ -10,6 +10,7 @@ import (
 	"github.com/kaytu-io/plugin-aws/plugin/kaytu"
 	"github.com/kaytu-io/plugin-aws/plugin/preferences"
 	processor2 "github.com/kaytu-io/plugin-aws/plugin/processor"
+	"github.com/kaytu-io/plugin-aws/plugin/processor/ec2_instance"
 	"github.com/kaytu-io/plugin-aws/plugin/version"
 )
 
@@ -91,25 +92,6 @@ func (p *AWSPlugin) StartProcess(command string, flags map[string]string, kaytuA
 		return err
 	}
 
-	publishJobResult := func(result *golang.JobResult) *golang.JobResult {
-		p.stream.Send(&golang.PluginMessage{
-			PluginMessage: &golang.PluginMessage_Job{
-				Job: result,
-			},
-		})
-		return result
-	}
-
-	publishError := func(err error) {
-		p.stream.Send(&golang.PluginMessage{
-			PluginMessage: &golang.PluginMessage_Err{
-				Err: &golang.Error{
-					Error: err.Error(),
-				},
-			},
-		})
-	}
-
 	publishOptimizationItem := func(item *golang.OptimizationItem) {
 		p.stream.Send(&golang.PluginMessage{
 			PluginMessage: &golang.PluginMessage_Oi{
@@ -130,15 +112,15 @@ func (p *AWSPlugin) StartProcess(command string, flags map[string]string, kaytuA
 	publishResultsReady(false)
 
 	if command == "ec2-instance" {
-		p.processor = processor2.NewEC2InstanceProcessor(
+		p.processor = ec2_instance.NewProcessor(
 			awsPrv,
 			cloudWatch,
 			identification,
-			publishJobResult,
-			publishError,
 			publishOptimizationItem,
-			publishResultsReady,
 			kaytuAccessToken,
+			jobQueue,
+			configurations,
+			&sdk.SafeCounter{},
 		)
 	} else if command == "rds-instance" {
 		p.processor = processor2.NewRDSProcessor(
@@ -150,12 +132,12 @@ func (p *AWSPlugin) StartProcess(command string, flags map[string]string, kaytuA
 			jobQueue,
 			configurations,
 		)
-		jobQueue.SetOnFinish(func() {
-			publishResultsReady(true)
-		})
 	} else {
 		return fmt.Errorf("invalid command: %s", command)
 	}
+	jobQueue.SetOnFinish(func() {
+		publishResultsReady(true)
+	})
 
 	return nil
 }

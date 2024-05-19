@@ -1,4 +1,4 @@
-package processor
+package ec2_instance
 
 import (
 	"fmt"

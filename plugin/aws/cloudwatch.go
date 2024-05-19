@@ -24,6 +24,7 @@ func (cw *CloudWatch) GetMetrics(
 	startTime, endTime time.Time,
 	interval time.Duration,
 	statistics []types2.Statistic,
+	extendedStatistics []string,
 ) (map[string][]types2.Datapoint, error) {
 	localCfg := cw.cfg
 	localCfg.Region = region
@@ -77,13 +78,14 @@ func (cw *CloudWatch) GetMetrics(
 
 			// Create input for GetMetricStatistics
 			input := &cloudwatch.GetMetricStatisticsInput{
-				Namespace:  aws.String(namespace),
-				MetricName: p.MetricName,
-				Dimensions: dimensions,
-				StartTime:  aws.Time(startTime),
-				EndTime:    aws.Time(endTime),
-				Period:     aws.Int32(int32(interval.Seconds())),
-				Statistics: statistics,
+				EndTime:            aws.Time(endTime),
+				MetricName:         p.MetricName,
+				Namespace:          aws.String(namespace),
+				Period:             aws.Int32(int32(interval.Seconds())),
+				StartTime:          aws.Time(startTime),
+				Dimensions:         dimensions,
+				ExtendedStatistics: extendedStatistics,
+				Statistics:         statistics,
 			}
 
 			// Get metric data
@@ -106,12 +108,13 @@ func (cw *CloudWatch) GetDayByDayMetrics(
 	days int,
 	interval time.Duration,
 	statistics []types2.Statistic,
+	extendedStatistics []string,
 ) (map[string][]types2.Datapoint, error) {
 	datapoints := make(map[string][]types2.Datapoint)
 	for i := 1; i <= days; i++ {
 		startTime := time.Now().Add(-time.Duration(24*i) * time.Hour)
 		endTime := time.Now().Add(-time.Duration(24*(i-1)) * time.Hour)
-		metrics, err := cw.GetMetrics(region, namespace, metricNames, filters, startTime, endTime, interval, statistics)
+		metrics, err := cw.GetMetrics(region, namespace, metricNames, filters, startTime, endTime, interval, statistics, extendedStatistics)
 		if err != nil {
 			return nil, err
 		}
