@@ -50,6 +50,11 @@ func (j *ListRDSClustersInRegionJob) Run() error {
 			Preferences:         preferences2.DefaultRDSPreferences,
 		}
 
+		if cluster.ServerlessV2ScalingConfiguration != nil {
+			oi.Skipped = true
+			oi.SkipReason = "serverless cluster"
+		}
+
 		if !oi.Skipped {
 			j.processor.lazyloadCounter.Increment()
 			if j.processor.lazyloadCounter.Get() > j.processor.configuration.RDSLazyLoad {
@@ -124,6 +129,9 @@ func (j *ListRDSClustersInRegionJob) Run() error {
 		}
 
 		oi, _ := j.processor.items.Get(*cluster.DBClusterIdentifier)
+		if oi.Skipped {
+			continue
+		}
 		j.processor.jobQueue.Push(NewGetRDSInstanceMetricsJob(j.processor, j.region, cluster, oi.Instances))
 	}
 
