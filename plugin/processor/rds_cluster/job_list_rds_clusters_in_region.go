@@ -119,7 +119,7 @@ func (j *ListRDSClustersInRegionJob) Run() error {
 	}
 
 	for _, cluster := range clusters {
-		if i, ok := j.processor.items.Get(*cluster.DBClusterIdentifier); ok && i.LazyLoadingEnabled {
+		if i, ok := j.processor.items.Get(*cluster.DBClusterIdentifier); ok && (i.LazyLoadingEnabled || i.Skipped) {
 			continue
 		}
 

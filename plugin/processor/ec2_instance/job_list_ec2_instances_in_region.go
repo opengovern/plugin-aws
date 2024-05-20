@@ -135,7 +135,7 @@ func (j *ListEC2InstancesInRegionJob) Run() error {
 
 	for _, instance := range instances {
 		i, ok := j.processor.items.Get(*instance.InstanceId)
-		if ok && (i.LazyLoadingEnabled || !i.OptimizationLoading) {
+		if ok && (i.LazyLoadingEnabled || !i.OptimizationLoading || i.Skipped) {
 			continue
 		}
 
