@@ -6,5 +6,5 @@ import (
 )
 
 func main() {
-	sdk.New(plugin.NewPlugin(), 8).Execute()
+	sdk.New(plugin.NewPlugin(), 4).Execute()
 }

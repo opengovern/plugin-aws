@@ -35,7 +35,7 @@ func (j *GetRDSClusterMetricsJob) Description() string {
 	return fmt.Sprintf("Getting metrics of %s", *j.cluster.DBClusterIdentifier)
 }
 func (j *GetRDSClusterMetricsJob) Run() error {
-	startTime := time.Now().Add(-24 * 7 * time.Hour)
+	startTime := time.Now().Add(-24 * 1 * time.Hour)
 	endTime := time.Now()
 
 	allMetrics := map[string]map[string][]types2.Datapoint{}
@@ -53,7 +53,7 @@ func (j *GetRDSClusterMetricsJob) Run() error {
 				"DBInstanceIdentifier": {*instance.DBInstanceIdentifier},
 			},
 			startTime, endTime,
-			time.Hour,
+			time.Minute,
 			nil,
 			[]string{"tm99"},
 		)
@@ -79,7 +79,7 @@ func (j *GetRDSClusterMetricsJob) Run() error {
 				"DBInstanceIdentifier": {*instance.DBInstanceIdentifier},
 			},
 			startTime, endTime,
-			time.Hour,
+			time.Minute,
 			[]types2.Statistic{
 				types2.StatisticAverage,
 				types2.StatisticMaximum,
@@ -105,7 +105,7 @@ func (j *GetRDSClusterMetricsJob) Run() error {
 				"DBInstanceIdentifier": {*instance.DBInstanceIdentifier},
 			},
 			startTime, endTime,
-			time.Hour,
+			time.Minute,
 			[]types2.Statistic{
 				types2.StatisticSum,
 			},
@@ -115,7 +115,7 @@ func (j *GetRDSClusterMetricsJob) Run() error {
 			return err
 		}
 		for k, val := range cwPerSecondMetrics {
-			cwPerSecondMetrics[k] = aws.GetDatapointsAvgFromSum(val, int32(time.Hour/time.Second))
+			cwPerSecondMetrics[k] = aws.GetDatapointsAvgFromSum(val, 1)
 		}
 
 		var volumeThroughput map[string][]types2.Datapoint
@@ -133,7 +133,7 @@ func (j *GetRDSClusterMetricsJob) Run() error {
 					"DBInstanceIdentifier": {*instance.DBInstanceIdentifier},
 				},
 				startTime, endTime,
-				time.Hour,
+				time.Minute,
 				[]types2.Statistic{
 					types2.StatisticSum,
 				},
@@ -152,7 +152,7 @@ func (j *GetRDSClusterMetricsJob) Run() error {
 				map[string][]string{
 					"DBInstanceIdentifier": {*instance.DBInstanceIdentifier},
 				},
-				7,
+				1,
 				time.Minute,
 				[]types2.Statistic{
 					types2.StatisticSum,
@@ -174,7 +174,7 @@ func (j *GetRDSClusterMetricsJob) Run() error {
 					"DBClusterIdentifier": {*instance.DBClusterIdentifier},
 				},
 				startTime, endTime,
-				time.Hour,
+				time.Minute,
 				[]types2.Statistic{
 					types2.StatisticSum,
 				},
@@ -191,9 +191,9 @@ func (j *GetRDSClusterMetricsJob) Run() error {
 					"WriteIOPS",
 				},
 				map[string][]string{
-					"DBClusterIdentifier": {*instance.DBInstanceIdentifier},
+					"DBClusterIdentifier": {*instance.DBClusterIdentifier},
 				},
-				7,
+				1,
 				time.Minute,
 				[]types2.Statistic{
 					types2.StatisticSum,
@@ -213,7 +213,7 @@ func (j *GetRDSClusterMetricsJob) Run() error {
 					"DBClusterIdentifier": {*instance.DBClusterIdentifier},
 				},
 				startTime, endTime,
-				time.Hour,
+				time.Minute,
 				[]types2.Statistic{
 					types2.StatisticAverage,
 					types2.StatisticMaximum,
@@ -225,10 +225,10 @@ func (j *GetRDSClusterMetricsJob) Run() error {
 			}
 		}
 		for k, val := range volumeThroughput {
-			volumeThroughput[k] = aws.GetDatapointsAvgFromSum(val, int32(time.Hour/time.Second))
+			volumeThroughput[k] = aws.GetDatapointsAvgFromSum(val, 1)
 		}
 		for k, val := range iopsMetrics {
-			iopsMetrics[k] = aws.GetDatapointsAvgFromSum(val, int32(time.Minute/time.Second))
+			iopsMetrics[k] = aws.GetDatapointsAvgFromSum(val, 1)
 		}
 
 		hashedIdentifier := utils.HashString(*instance.DBInstanceIdentifier)
