@@ -49,7 +49,7 @@ func (j *GetEC2InstanceMetricsJob) Run() error {
 		return err
 	}
 
-	startTime := time.Now().Add(-24 * 7 * time.Hour)
+	startTime := time.Now().Add(-24 * 1 * time.Hour)
 	endTime := time.Now()
 	instanceMetrics := map[string][]types2.Datapoint{}
 
@@ -63,17 +63,20 @@ func (j *GetEC2InstanceMetricsJob) Run() error {
 			"InstanceId": {*j.instance.InstanceId},
 		},
 		startTime, endTime,
-		time.Hour,
-		[]types2.Statistic{
-			types2.StatisticAverage,
-			types2.StatisticMaximum,
-		},
+		time.Minute,
 		nil,
+		[]string{"tm99"},
 	)
 	if err != nil {
 		return err
 	}
 	for k, v := range cwMetrics {
+		for idx, vv := range v {
+			tmp := vv.ExtendedStatistics["tm99"]
+			vv.Average = &tmp
+			v[idx] = vv
+		}
+
 		instanceMetrics[k] = v
 	}
 
@@ -88,7 +91,7 @@ func (j *GetEC2InstanceMetricsJob) Run() error {
 			"InstanceId": {*j.instance.InstanceId},
 		},
 		startTime, endTime,
-		time.Hour,
+		time.Minute,
 		[]types2.Statistic{
 			types2.StatisticSum,
 		},
@@ -98,8 +101,7 @@ func (j *GetEC2InstanceMetricsJob) Run() error {
 		return err
 	}
 	for k, v := range cwPerSecondMetrics {
-		cwPerSecondMetrics[k] = aws2.GetDatapointsAvgFromSum(v, int32(time.Hour/time.Second))
-		instanceMetrics[k] = cwPerSecondMetrics[k]
+		instanceMetrics[k] = aws2.GetDatapointsAvgFromSum(v, 1)
 	}
 
 	cwaMetrics, err := j.processor.metricProvider.GetMetrics(
@@ -112,7 +114,7 @@ func (j *GetEC2InstanceMetricsJob) Run() error {
 			"InstanceId": {*j.instance.InstanceId},
 		},
 		startTime, endTime,
-		time.Hour,
+		time.Minute,
 		[]types2.Statistic{
 			types2.StatisticAverage,
 			types2.StatisticMaximum,
@@ -146,7 +148,7 @@ func (j *GetEC2InstanceMetricsJob) Run() error {
 				"VolumeId": {v},
 			},
 			startTime, endTime,
-			time.Hour,
+			time.Minute,
 			[]types2.Statistic{
 				types2.StatisticSum,
 			},
@@ -157,7 +159,7 @@ func (j *GetEC2InstanceMetricsJob) Run() error {
 		}
 
 		for k, val := range volumeMetricsMap {
-			volumeMetricsMap[k] = aws2.GetDatapointsAvgFromSum(val, int32(time.Hour/time.Second))
+			volumeMetricsMap[k] = aws2.GetDatapointsAvgFromSum(val, int32(time.Minute/time.Second))
 		}
 
 		volumeIops, err := j.processor.metricProvider.GetDayByDayMetrics(
@@ -170,7 +172,7 @@ func (j *GetEC2InstanceMetricsJob) Run() error {
 			map[string][]string{
 				"VolumeId": {v},
 			},
-			7,
+			1,
 			time.Minute,
 			[]types2.Statistic{
 				types2.StatisticSum,

@@ -76,7 +76,6 @@ func (i RDSInstanceItem) RDSInstanceDevice() []*golang.Device {
 		Key:     "Memory",
 		Current: fmt.Sprintf("%d GiB", i.Wastage.RightSizing.Current.MemoryGb),
 		Average: utils.MemoryUsagePercentageByFreeSpace(i.Wastage.RightSizing.FreeMemoryBytes.Avg, float64(i.Wastage.RightSizing.Current.MemoryGb)),
-		Max:     utils.MemoryUsagePercentageByFreeSpace(i.Wastage.RightSizing.FreeMemoryBytes.Min, float64(i.Wastage.RightSizing.Current.MemoryGb)),
 	}
 	storageTypeProperty := &golang.Property{
 		Key:     "Type",

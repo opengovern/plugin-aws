@@ -32,23 +32,49 @@ func (j *GetRDSInstanceMetricsJob) Description() string {
 	return fmt.Sprintf("Getting metrics of %s", *j.instance.DBInstanceIdentifier)
 }
 func (j *GetRDSInstanceMetricsJob) Run() error {
-	startTime := time.Now().Add(-24 * 7 * time.Hour)
+	startTime := time.Now().Add(-24 * 1 * time.Hour)
 	endTime := time.Now()
 
 	instanceMetrics := map[string][]types2.Datapoint{}
-	cwMetrics, err := j.processor.metricProvider.GetMetrics(
+	cwTM99Metrics, err := j.processor.metricProvider.GetMetrics(
 		j.region,
 		"AWS/RDS",
 		[]string{
 			"CPUUtilization",
 			"FreeableMemory",
+		},
+		map[string][]string{
+			"DBInstanceIdentifier": {*j.instance.DBInstanceIdentifier},
+		},
+		startTime, endTime,
+		time.Minute,
+		nil,
+		[]string{"tm99"},
+	)
+	if err != nil {
+		return err
+	}
+	for k, v := range cwTM99Metrics {
+		for idx, vv := range v {
+			tmp := vv.ExtendedStatistics["tm99"]
+			vv.Average = &tmp
+			v[idx] = vv
+		}
+
+		instanceMetrics[k] = v
+	}
+
+	cwMetrics, err := j.processor.metricProvider.GetMetrics(
+		j.region,
+		"AWS/RDS",
+		[]string{
 			"FreeStorageSpace",
 		},
 		map[string][]string{
 			"DBInstanceIdentifier": {*j.instance.DBInstanceIdentifier},
 		},
 		startTime, endTime,
-		time.Hour,
+		time.Minute,
 		[]types2.Statistic{
 			types2.StatisticAverage,
 			types2.StatisticMaximum,
@@ -73,7 +99,7 @@ func (j *GetRDSInstanceMetricsJob) Run() error {
 			"DBInstanceIdentifier": {*j.instance.DBInstanceIdentifier},
 		},
 		startTime, endTime,
-		time.Hour,
+		time.Minute,
 		[]types2.Statistic{
 			types2.StatisticSum,
 		},
@@ -84,7 +110,7 @@ func (j *GetRDSInstanceMetricsJob) Run() error {
 	}
 
 	for k, val := range throughputMetrics {
-		throughputMetrics[k] = aws.GetDatapointsAvgFromSum(val, int32(time.Hour/time.Second))
+		throughputMetrics[k] = aws.GetDatapointsAvgFromSum(val, 1)
 	}
 
 	iopsMetrics, err := j.processor.metricProvider.GetDayByDayMetrics(
@@ -97,7 +123,7 @@ func (j *GetRDSInstanceMetricsJob) Run() error {
 		map[string][]string{
 			"DBInstanceIdentifier": {*j.instance.DBInstanceIdentifier},
 		},
-		7,
+		1,
 		time.Minute,
 		[]types2.Statistic{
 			types2.StatisticSum,
@@ -108,7 +134,7 @@ func (j *GetRDSInstanceMetricsJob) Run() error {
 		return err
 	}
 	for k, val := range iopsMetrics {
-		iopsMetrics[k] = aws.GetDatapointsAvgFromSum(val, int32(time.Minute/time.Second))
+		iopsMetrics[k] = aws.GetDatapointsAvgFromSum(val, 1)
 	}
 
 	var clusterMetrics map[string][]types2.Datapoint
@@ -123,7 +149,7 @@ func (j *GetRDSInstanceMetricsJob) Run() error {
 				"DBClusterIdentifier": {*j.instance.DBClusterIdentifier},
 			},
 			startTime, endTime,
-			time.Hour,
+			time.Minute,
 			[]types2.Statistic{
 				types2.StatisticAverage,
 				types2.StatisticMaximum,
