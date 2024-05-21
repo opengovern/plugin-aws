@@ -101,7 +101,7 @@ func (j *GetEC2InstanceMetricsJob) Run() error {
 		return err
 	}
 	for k, v := range cwPerSecondMetrics {
-		instanceMetrics[k] = v
+		instanceMetrics[k] = aws2.GetDatapointsAvgFromSum(v, 1)
 	}
 
 	cwaMetrics, err := j.processor.metricProvider.GetMetrics(
