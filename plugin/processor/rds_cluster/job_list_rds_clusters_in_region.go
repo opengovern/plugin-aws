@@ -53,9 +53,7 @@ func (j *ListRDSClustersInRegionJob) Run() error {
 		if cluster.ServerlessV2ScalingConfiguration != nil {
 			oi.Skipped = true
 			oi.SkipReason = "serverless cluster"
-		}
-
-		if len(instances) == 0 {
+		} else if len(instances) == 0 {
 			oi.Skipped = true
 			oi.SkipReason = "no instances found"
 		}
