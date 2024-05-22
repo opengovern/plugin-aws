@@ -55,6 +55,11 @@ func (j *ListRDSClustersInRegionJob) Run() error {
 			oi.SkipReason = "serverless cluster"
 		}
 
+		if len(instances) == 0 {
+			oi.Skipped = true
+			oi.SkipReason = "no instances found"
+		}
+
 		if !oi.Skipped {
 			j.processor.lazyloadCounter.Increment()
 			if j.processor.lazyloadCounter.Get() > j.processor.configuration.RDSLazyLoad {
