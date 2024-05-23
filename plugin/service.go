@@ -32,7 +32,7 @@ func (p *AWSPlugin) GetConfig() golang.RegisterConfig {
 		Commands: []*golang.Command{
 			{
 				Name:        "ec2-instance",
-				Description: "Optimize your AWS EC2 Instances",
+				Description: "Get optimization suggestions for your AWS EC2 Instances",
 				Flags: []*golang.Flag{
 					{
 						Name:        "profile",
@@ -46,7 +46,7 @@ func (p *AWSPlugin) GetConfig() golang.RegisterConfig {
 			},
 			{
 				Name:        "rds-instance",
-				Description: "Optimize your AWS RDS Instances",
+				Description: "Get optimization suggestions for your AWS RDS Instances",
 				Flags: []*golang.Flag{
 					{
 						Name:        "profile",
