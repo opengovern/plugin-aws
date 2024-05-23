@@ -9,6 +9,7 @@ import (
 	"github.com/kaytu-io/plugin-aws/plugin/kaytu"
 	preferences2 "github.com/kaytu-io/plugin-aws/plugin/preferences"
 	"github.com/kaytu-io/plugin-aws/plugin/version"
+	"strings"
 )
 
 type ListRDSInstancesInRegionJob struct {
@@ -46,6 +47,11 @@ func (j *ListRDSInstancesInRegionJob) Run() error {
 			OptimizationLoading: true,
 			LazyLoadingEnabled:  false,
 			Preferences:         preferences2.DefaultRDSPreferences,
+		}
+
+		if strings.Contains(strings.ToLower(*instance.Engine), "docdb") {
+			oi.Skipped = true
+			oi.SkipReason = "docdb instance"
 		}
 
 		if !oi.Skipped {

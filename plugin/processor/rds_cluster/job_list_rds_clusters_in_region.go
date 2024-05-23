@@ -9,6 +9,7 @@ import (
 	"github.com/kaytu-io/plugin-aws/plugin/kaytu"
 	preferences2 "github.com/kaytu-io/plugin-aws/plugin/preferences"
 	"github.com/kaytu-io/plugin-aws/plugin/version"
+	"strings"
 )
 
 type ListRDSClustersInRegionJob struct {
@@ -49,8 +50,10 @@ func (j *ListRDSClustersInRegionJob) Run() error {
 			LazyLoadingEnabled:  false,
 			Preferences:         preferences2.DefaultRDSPreferences,
 		}
-
-		if cluster.ServerlessV2ScalingConfiguration != nil {
+		if strings.Contains(strings.ToLower(*cluster.Engine), "docdb") {
+			oi.Skipped = true
+			oi.SkipReason = "docdb cluster"
+		} else if cluster.ServerlessV2ScalingConfiguration != nil {
 			oi.Skipped = true
 			oi.SkipReason = "serverless cluster"
 		} else if len(instances) == 0 {
