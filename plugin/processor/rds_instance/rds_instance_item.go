@@ -8,6 +8,7 @@ import (
 	"github.com/kaytu-io/kaytu/pkg/utils"
 	"github.com/kaytu-io/plugin-aws/plugin/kaytu"
 	"strings"
+	"time"
 )
 
 type RDSInstanceItem struct {
@@ -121,6 +122,11 @@ func (i RDSInstanceItem) RDSInstanceDevice() []*golang.Device {
 		Average: utils.PStorageThroughputMbps(i.Wastage.RightSizing.StorageThroughput.Avg),
 		Max:     utils.PStorageThroughputMbps(i.Wastage.RightSizing.StorageThroughput.Max),
 	}
+	runtimeProperty := &golang.Property{
+		Key:     "RuntimeHours",
+		Current: fmt.Sprintf("%.0f", time.Now().Sub(*i.Instance.InstanceCreateTime).Hours()),
+		Hidden:  true,
+	}
 
 	if i.Wastage.RightSizing.Recommended != nil {
 		processorProperty.Recommended = i.Wastage.RightSizing.Recommended.Processor
@@ -169,6 +175,7 @@ func (i RDSInstanceItem) RDSInstanceDevice() []*golang.Device {
 	ec2InstanceStorage.Properties = append(ec2InstanceStorage.Properties, storageSizeProperty)
 	ec2InstanceStorage.Properties = append(ec2InstanceStorage.Properties, storageIOPSProperty)
 	ec2InstanceStorage.Properties = append(ec2InstanceStorage.Properties, storageThroughputProperty)
+	ec2InstanceStorage.Properties = append(ec2InstanceStorage.Properties, runtimeProperty)
 
 	return []*golang.Device{ec2InstanceCompute, ec2InstanceStorage}
 }
