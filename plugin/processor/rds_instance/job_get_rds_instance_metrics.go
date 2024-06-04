@@ -4,7 +4,6 @@ import (
 	"fmt"
 	types2 "github.com/aws/aws-sdk-go-v2/service/cloudwatch/types"
 	"github.com/aws/aws-sdk-go-v2/service/rds/types"
-	"github.com/kaytu-io/plugin-aws/plugin/aws"
 	preferences2 "github.com/kaytu-io/plugin-aws/plugin/preferences"
 	"strings"
 	"time"
@@ -101,7 +100,9 @@ func (j *GetRDSInstanceMetricsJob) Run() error {
 		startTime, endTime,
 		time.Minute,
 		[]types2.Statistic{
-			types2.StatisticSum,
+			types2.StatisticAverage,
+			types2.StatisticMaximum,
+			types2.StatisticMinimum,
 		},
 		nil,
 	)
@@ -110,7 +111,7 @@ func (j *GetRDSInstanceMetricsJob) Run() error {
 	}
 
 	for k, val := range throughputMetrics {
-		throughputMetrics[k] = aws.GetDatapointsAvgFromSum(val, 1)
+		throughputMetrics[k] = val
 	}
 
 	iopsMetrics, err := j.processor.metricProvider.GetDayByDayMetrics(
@@ -126,7 +127,9 @@ func (j *GetRDSInstanceMetricsJob) Run() error {
 		1,
 		time.Minute,
 		[]types2.Statistic{
-			types2.StatisticSum,
+			types2.StatisticAverage,
+			types2.StatisticMaximum,
+			types2.StatisticMinimum,
 		},
 		nil,
 	)
@@ -134,7 +137,7 @@ func (j *GetRDSInstanceMetricsJob) Run() error {
 		return err
 	}
 	for k, val := range iopsMetrics {
-		iopsMetrics[k] = aws.GetDatapointsAvgFromSum(val, 1)
+		iopsMetrics[k] = val
 	}
 
 	var clusterMetrics map[string][]types2.Datapoint
