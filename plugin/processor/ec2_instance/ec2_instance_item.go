@@ -67,8 +67,8 @@ func (i EC2InstanceItem) EC2InstanceDevice() *golang.Device {
 	ebsProperty := &golang.Property{
 		Key:     "EBS Bandwidth",
 		Current: fmt.Sprintf("%s", i.Wastage.RightSizing.Current.EBSBandwidth),
-		Average: utils.PNetworkThroughputMbps(i.Wastage.RightSizing.EBSBandwidth.Avg),
-		Max:     utils.PNetworkThroughputMbps(i.Wastage.RightSizing.EBSBandwidth.Max),
+		Average: PNetworkThroughputMBps(i.Wastage.RightSizing.EBSBandwidth.Avg),
+		Max:     PNetworkThroughputMBps(i.Wastage.RightSizing.EBSBandwidth.Max),
 	}
 	iopsProperty := &golang.Property{
 		Key:     "EBS IOPS",
@@ -237,4 +237,12 @@ func (i EC2InstanceItem) ToOptimizationItem() *golang.OptimizationItem {
 	}
 
 	return oi
+}
+
+func PNetworkThroughputMBps(v *float64) string {
+	if v == nil {
+		return ""
+	}
+	vv := *v / (1024 * 1024)
+	return fmt.Sprintf("%.2f MB/s", vv)
 }
