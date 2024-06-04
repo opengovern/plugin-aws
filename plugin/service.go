@@ -12,6 +12,7 @@ import (
 	processor2 "github.com/kaytu-io/plugin-aws/plugin/processor"
 	"github.com/kaytu-io/plugin-aws/plugin/processor/ec2_instance"
 	"github.com/kaytu-io/plugin-aws/plugin/version"
+	"math"
 )
 
 type AWSPlugin struct {
@@ -91,6 +92,13 @@ func (p *AWSPlugin) StartProcess(command string, flags map[string]string, kaytuA
 	configurations, err := kaytu.ConfigurationRequest()
 	if err != nil {
 		return err
+	}
+
+	for key, value := range flags {
+		if key == "output" && value != "" && value != "interactive" {
+			configurations.EC2LazyLoad = math.MaxInt
+			configurations.RDSLazyLoad = math.MaxInt
+		}
 	}
 
 	publishOptimizationItem := func(item *golang.OptimizationItem) {
