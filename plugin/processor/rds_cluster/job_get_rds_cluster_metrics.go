@@ -5,7 +5,6 @@ import (
 	types2 "github.com/aws/aws-sdk-go-v2/service/cloudwatch/types"
 	"github.com/aws/aws-sdk-go-v2/service/rds/types"
 	"github.com/kaytu-io/kaytu/pkg/utils"
-	"github.com/kaytu-io/plugin-aws/plugin/aws"
 	preferences2 "github.com/kaytu-io/plugin-aws/plugin/preferences"
 	"strings"
 	"time"
@@ -74,6 +73,8 @@ func (j *GetRDSClusterMetricsJob) Run() error {
 			"AWS/RDS",
 			[]string{
 				"FreeStorageSpace",
+				"NetworkReceiveThroughput",
+				"NetworkTransmitThroughput",
 			},
 			map[string][]string{
 				"DBInstanceIdentifier": {*instance.DBInstanceIdentifier},
@@ -94,30 +95,6 @@ func (j *GetRDSClusterMetricsJob) Run() error {
 			allMetrics[utils.HashString(*instance.DBInstanceIdentifier)][k] = v
 		}
 
-		cwPerSecondMetrics, err := j.processor.metricProvider.GetMetrics(
-			j.region,
-			"AWS/RDS",
-			[]string{
-				"NetworkReceiveThroughput",
-				"NetworkTransmitThroughput",
-			},
-			map[string][]string{
-				"DBInstanceIdentifier": {*instance.DBInstanceIdentifier},
-			},
-			startTime, endTime,
-			time.Minute,
-			[]types2.Statistic{
-				types2.StatisticSum,
-			},
-			nil,
-		)
-		if err != nil {
-			return err
-		}
-		for k, val := range cwPerSecondMetrics {
-			cwPerSecondMetrics[k] = aws.GetDatapointsAvgFromSum(val, 1)
-		}
-
 		var volumeThroughput map[string][]types2.Datapoint
 		var iopsMetrics map[string][]types2.Datapoint
 		var clusterMetrics map[string][]types2.Datapoint
@@ -135,7 +112,9 @@ func (j *GetRDSClusterMetricsJob) Run() error {
 				startTime, endTime,
 				time.Minute,
 				[]types2.Statistic{
-					types2.StatisticSum,
+					types2.StatisticAverage,
+					types2.StatisticMaximum,
+					types2.StatisticMinimum,
 				},
 				nil,
 			)
@@ -155,7 +134,9 @@ func (j *GetRDSClusterMetricsJob) Run() error {
 				1,
 				time.Minute,
 				[]types2.Statistic{
-					types2.StatisticSum,
+					types2.StatisticAverage,
+					types2.StatisticMaximum,
+					types2.StatisticMinimum,
 				},
 				nil,
 			)
@@ -176,7 +157,9 @@ func (j *GetRDSClusterMetricsJob) Run() error {
 				startTime, endTime,
 				time.Minute,
 				[]types2.Statistic{
-					types2.StatisticSum,
+					types2.StatisticAverage,
+					types2.StatisticMaximum,
+					types2.StatisticMinimum,
 				},
 				nil,
 			)
@@ -196,7 +179,9 @@ func (j *GetRDSClusterMetricsJob) Run() error {
 				1,
 				time.Minute,
 				[]types2.Statistic{
-					types2.StatisticSum,
+					types2.StatisticAverage,
+					types2.StatisticMaximum,
+					types2.StatisticMinimum,
 				},
 				nil,
 			)
@@ -225,17 +210,14 @@ func (j *GetRDSClusterMetricsJob) Run() error {
 			}
 		}
 		for k, val := range volumeThroughput {
-			volumeThroughput[k] = aws.GetDatapointsAvgFromSum(val, 1)
+			volumeThroughput[k] = val
 		}
 		for k, val := range iopsMetrics {
-			iopsMetrics[k] = aws.GetDatapointsAvgFromSum(val, 1)
+			iopsMetrics[k] = val
 		}
 
 		hashedIdentifier := utils.HashString(*instance.DBInstanceIdentifier)
 		for k, v := range cwMetrics {
-			allMetrics[hashedIdentifier][k] = v
-		}
-		for k, v := range cwPerSecondMetrics {
 			allMetrics[hashedIdentifier][k] = v
 		}
 		for k, v := range iopsMetrics {
