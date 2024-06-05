@@ -49,53 +49,26 @@ func (cw *CloudWatch) GetMetrics(
 		})
 	}
 
-	paginator := cloudwatch.NewListMetricsPaginator(cloudwatchClient, &cloudwatch.ListMetricsInput{
-		Namespace:  aws.String(namespace),
-		Dimensions: dimensionFilters,
-	})
-	for paginator.HasMorePages() {
-		page, err := paginator.NextPage(ctx)
+	for _, metricName := range metricNames {
+		// Create input for GetMetricStatistics
+		input := &cloudwatch.GetMetricStatisticsInput{
+			EndTime:            aws.Time(endTime),
+			MetricName:         aws.String(metricName),
+			Namespace:          aws.String(namespace),
+			Period:             aws.Int32(int32(interval.Seconds())),
+			StartTime:          aws.Time(startTime),
+			Dimensions:         dimensions,
+			ExtendedStatistics: extendedStatistics,
+			Statistics:         statistics,
+		}
+
+		// Get metric data
+		resp, err := cloudwatchClient.GetMetricStatistics(ctx, input)
 		if err != nil {
 			return nil, err
 		}
 
-		for _, p := range page.Metrics {
-			if p.MetricName == nil {
-				continue
-			}
-
-			exists := false
-			for _, mn := range metricNames {
-				if *p.MetricName == mn {
-					exists = true
-					break
-				}
-			}
-
-			if !exists {
-				continue
-			}
-
-			// Create input for GetMetricStatistics
-			input := &cloudwatch.GetMetricStatisticsInput{
-				EndTime:            aws.Time(endTime),
-				MetricName:         p.MetricName,
-				Namespace:          aws.String(namespace),
-				Period:             aws.Int32(int32(interval.Seconds())),
-				StartTime:          aws.Time(startTime),
-				Dimensions:         dimensions,
-				ExtendedStatistics: extendedStatistics,
-				Statistics:         statistics,
-			}
-
-			// Get metric data
-			resp, err := cloudwatchClient.GetMetricStatistics(ctx, input)
-			if err != nil {
-				return nil, err
-			}
-
-			metrics[*p.MetricName] = resp.Datapoints
-		}
+		metrics[metricName] = resp.Datapoints
 	}
 	return metrics, nil
 }
@@ -132,7 +105,16 @@ func (cw *CloudWatch) GetDayByDayMetrics(
 
 func GetDatapointsAvgFromSum(dps []types2.Datapoint, period int32) []types2.Datapoint {
 	for i, dp := range dps {
-		avg := (*dp.Sum) / float64(period)
+		avg := (*dp.Sum) / (*dp.SampleCount * float64(period))
+		dp.Average = &avg
+		dps[i] = dp
+	}
+	return dps
+}
+
+func GetDatapointsAvgFromSumPeriod(dps []types2.Datapoint, period int32) []types2.Datapoint {
+	for i, dp := range dps {
+		avg := (*dp.Sum) / (float64(period))
 		dp.Average = &avg
 		dps[i] = dp
 	}
