@@ -93,8 +93,8 @@ func (j *GetEC2InstanceMetricsJob) Run() error {
 		startTime, endTime,
 		time.Minute,
 		[]types2.Statistic{
-			types2.StatisticAverage,
-			types2.StatisticMaximum,
+			types2.StatisticSum,
+			types2.StatisticSampleCount,
 		},
 		nil,
 	)
@@ -102,7 +102,7 @@ func (j *GetEC2InstanceMetricsJob) Run() error {
 		return err
 	}
 	for k, v := range cwPerSecondMetrics {
-		instanceMetrics[k] = v
+		instanceMetrics[k] = aws2.GetDatapointsAvgFromSum(v, 1)
 	}
 
 	cwaMetrics, err := j.processor.metricProvider.GetMetrics(
@@ -152,6 +152,7 @@ func (j *GetEC2InstanceMetricsJob) Run() error {
 			time.Minute,
 			[]types2.Statistic{
 				types2.StatisticSum,
+				types2.StatisticSampleCount,
 			},
 			nil,
 		)
@@ -177,6 +178,7 @@ func (j *GetEC2InstanceMetricsJob) Run() error {
 			time.Minute,
 			[]types2.Statistic{
 				types2.StatisticSum,
+				types2.StatisticSampleCount,
 			},
 			nil,
 		)
