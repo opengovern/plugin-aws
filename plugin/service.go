@@ -152,5 +152,12 @@ func (p *AWSPlugin) StartProcess(command string, flags map[string]string, kaytuA
 }
 
 func (p *AWSPlugin) ReEvaluate(evaluate *golang.ReEvaluate) {
+	if evaluate == nil {
+		return
+	}
+	if p.processor == nil {
+		return
+	}
+
 	p.processor.ReEvaluate(evaluate.Id, evaluate.Preferences)
 }
