@@ -57,7 +57,10 @@ func (j *ListEC2InstancesInRegionJob) Run() error {
 			oi.Skipped = true
 			reason := ""
 			if instance.State.Name != types2.InstanceStateNameRunning {
-				continue
+				if instance.State.Name == types2.InstanceStateNameTerminated || instance.State.Name == types2.InstanceStateNameStopped {
+					continue
+				}
+				reason = "not running"
 			} else if instance.InstanceLifecycle == types2.InstanceLifecycleTypeSpot {
 				reason = "spot instance"
 			} else if isAutoScaling {
