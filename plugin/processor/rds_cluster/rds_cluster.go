@@ -18,6 +18,7 @@ type Processor struct {
 	jobQueue                *sdk.JobQueue
 	configuration           *kaytu.Configuration
 	lazyloadCounter         *sdk.SafeCounter
+	observabilityDays       int
 }
 
 func NewProcessor(
@@ -29,6 +30,7 @@ func NewProcessor(
 	jobQueue *sdk.JobQueue,
 	configurations *kaytu.Configuration,
 	lazyloadCounter *sdk.SafeCounter,
+	observabilityDays int,
 ) *Processor {
 	r := &Processor{
 		provider:                provider,
@@ -40,6 +42,7 @@ func NewProcessor(
 		jobQueue:                jobQueue,
 		configuration:           configurations,
 		lazyloadCounter:         lazyloadCounter,
+		observabilityDays:       observabilityDays,
 	}
 
 	jobQueue.Push(NewListAllRegionsJob(r))

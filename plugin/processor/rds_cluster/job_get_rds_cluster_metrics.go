@@ -34,14 +34,11 @@ func (j *GetRDSClusterMetricsJob) Description() string {
 	return fmt.Sprintf("Getting metrics of %s", *j.cluster.DBClusterIdentifier)
 }
 func (j *GetRDSClusterMetricsJob) Run() error {
-	startTime := time.Now().Add(-24 * 1 * time.Hour)
-	endTime := time.Now()
-
 	allMetrics := map[string]map[string][]types2.Datapoint{}
 	for _, instance := range j.instances {
 		isAurora := j.cluster.DBClusterIdentifier != nil && strings.Contains(strings.ToLower(*j.cluster.Engine), "aurora")
 		allMetrics[utils.HashString(*instance.DBInstanceIdentifier)] = map[string][]types2.Datapoint{}
-		cwMetrics, err := j.processor.metricProvider.GetMetrics(
+		cwMetrics, err := j.processor.metricProvider.GetDayByDayMetrics(
 			j.region,
 			"AWS/RDS",
 			[]string{
@@ -51,7 +48,7 @@ func (j *GetRDSClusterMetricsJob) Run() error {
 			map[string][]string{
 				"DBInstanceIdentifier": {*instance.DBInstanceIdentifier},
 			},
-			startTime, endTime,
+			j.processor.observabilityDays,
 			time.Minute,
 			nil,
 			[]string{"tm99"},
@@ -68,7 +65,7 @@ func (j *GetRDSClusterMetricsJob) Run() error {
 			allMetrics[utils.HashString(*instance.DBInstanceIdentifier)][k] = v
 		}
 
-		cwMetrics, err = j.processor.metricProvider.GetMetrics(
+		cwMetrics, err = j.processor.metricProvider.GetDayByDayMetrics(
 			j.region,
 			"AWS/RDS",
 			[]string{
@@ -79,7 +76,7 @@ func (j *GetRDSClusterMetricsJob) Run() error {
 			map[string][]string{
 				"DBInstanceIdentifier": {*instance.DBInstanceIdentifier},
 			},
-			startTime, endTime,
+			j.processor.observabilityDays,
 			time.Minute,
 			[]types2.Statistic{
 				types2.StatisticAverage,
@@ -99,7 +96,7 @@ func (j *GetRDSClusterMetricsJob) Run() error {
 		var iopsMetrics map[string][]types2.Datapoint
 		var clusterMetrics map[string][]types2.Datapoint
 		if !isAurora {
-			volumeThroughput, err = j.processor.metricProvider.GetMetrics(
+			volumeThroughput, err = j.processor.metricProvider.GetDayByDayMetrics(
 				j.region,
 				"AWS/RDS",
 				[]string{
@@ -109,7 +106,7 @@ func (j *GetRDSClusterMetricsJob) Run() error {
 				map[string][]string{
 					"DBInstanceIdentifier": {*instance.DBInstanceIdentifier},
 				},
-				startTime, endTime,
+				j.processor.observabilityDays,
 				time.Minute,
 				[]types2.Statistic{
 					types2.StatisticAverage,
@@ -131,7 +128,7 @@ func (j *GetRDSClusterMetricsJob) Run() error {
 				map[string][]string{
 					"DBInstanceIdentifier": {*instance.DBInstanceIdentifier},
 				},
-				1,
+				j.processor.observabilityDays,
 				time.Minute,
 				[]types2.Statistic{
 					types2.StatisticAverage,
@@ -144,7 +141,7 @@ func (j *GetRDSClusterMetricsJob) Run() error {
 				return err
 			}
 		} else {
-			volumeThroughput, err = j.processor.metricProvider.GetMetrics(
+			volumeThroughput, err = j.processor.metricProvider.GetDayByDayMetrics(
 				j.region,
 				"AWS/RDS",
 				[]string{
@@ -154,7 +151,7 @@ func (j *GetRDSClusterMetricsJob) Run() error {
 				map[string][]string{
 					"DBClusterIdentifier": {*instance.DBClusterIdentifier},
 				},
-				startTime, endTime,
+				j.processor.observabilityDays,
 				time.Minute,
 				[]types2.Statistic{
 					types2.StatisticAverage,
@@ -176,7 +173,7 @@ func (j *GetRDSClusterMetricsJob) Run() error {
 				map[string][]string{
 					"DBClusterIdentifier": {*instance.DBClusterIdentifier},
 				},
-				1,
+				j.processor.observabilityDays,
 				time.Minute,
 				[]types2.Statistic{
 					types2.StatisticAverage,
@@ -188,7 +185,7 @@ func (j *GetRDSClusterMetricsJob) Run() error {
 			if err != nil {
 				return err
 			}
-			clusterMetrics, err = j.processor.metricProvider.GetMetrics(
+			clusterMetrics, err = j.processor.metricProvider.GetDayByDayMetrics(
 				j.region,
 				"AWS/RDS",
 				[]string{
@@ -197,7 +194,7 @@ func (j *GetRDSClusterMetricsJob) Run() error {
 				map[string][]string{
 					"DBClusterIdentifier": {*instance.DBClusterIdentifier},
 				},
-				startTime, endTime,
+				j.processor.observabilityDays,
 				time.Minute,
 				[]types2.Statistic{
 					types2.StatisticAverage,
