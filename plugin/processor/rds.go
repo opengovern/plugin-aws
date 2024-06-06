@@ -14,11 +14,11 @@ type RDSProcessor struct {
 	rdsClusterProcessor  *rds_cluster.Processor
 }
 
-func NewRDSProcessor(provider *aws.AWS, metricProvider *aws.CloudWatch, identification map[string]string, publishOptimizationItem func(item *golang.OptimizationItem), kaytuAcccessToken string, jobQueue *sdk.JobQueue, configurations *kaytu.Configuration) *RDSProcessor {
+func NewRDSProcessor(provider *aws.AWS, metricProvider *aws.CloudWatch, identification map[string]string, publishOptimizationItem func(item *golang.OptimizationItem), kaytuAcccessToken string, jobQueue *sdk.JobQueue, configurations *kaytu.Configuration, observabilityDays int) *RDSProcessor {
 	lazyloadCounter := &sdk.SafeCounter{}
 	return &RDSProcessor{
-		rdsInstanceProcessor: rds_instance.NewProcessor(provider, metricProvider, identification, publishOptimizationItem, kaytuAcccessToken, jobQueue, configurations, lazyloadCounter),
-		rdsClusterProcessor:  rds_cluster.NewProcessor(provider, metricProvider, identification, publishOptimizationItem, kaytuAcccessToken, jobQueue, configurations, lazyloadCounter),
+		rdsInstanceProcessor: rds_instance.NewProcessor(provider, metricProvider, identification, publishOptimizationItem, kaytuAcccessToken, jobQueue, configurations, lazyloadCounter, observabilityDays),
+		rdsClusterProcessor:  rds_cluster.NewProcessor(provider, metricProvider, identification, publishOptimizationItem, kaytuAcccessToken, jobQueue, configurations, lazyloadCounter, observabilityDays),
 	}
 }
 

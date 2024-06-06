@@ -49,11 +49,9 @@ func (j *GetEC2InstanceMetricsJob) Run() error {
 		return err
 	}
 
-	startTime := time.Now().Add(-24 * 1 * time.Hour)
-	endTime := time.Now()
 	instanceMetrics := map[string][]types2.Datapoint{}
 
-	cwMetrics, err := j.processor.metricProvider.GetMetrics(
+	cwMetrics, err := j.processor.metricProvider.GetDayByDayMetrics(
 		j.region,
 		"AWS/EC2",
 		[]string{
@@ -62,7 +60,7 @@ func (j *GetEC2InstanceMetricsJob) Run() error {
 		map[string][]string{
 			"InstanceId": {*j.instance.InstanceId},
 		},
-		startTime, endTime,
+		j.processor.observabilityDays,
 		time.Minute,
 		nil,
 		[]string{"tm99"},
@@ -80,7 +78,7 @@ func (j *GetEC2InstanceMetricsJob) Run() error {
 		instanceMetrics[k] = v
 	}
 
-	cwPerSecondMetrics, err := j.processor.metricProvider.GetMetrics(
+	cwPerSecondMetrics, err := j.processor.metricProvider.GetDayByDayMetrics(
 		j.region,
 		"AWS/EC2",
 		[]string{
@@ -90,7 +88,7 @@ func (j *GetEC2InstanceMetricsJob) Run() error {
 		map[string][]string{
 			"InstanceId": {*j.instance.InstanceId},
 		},
-		startTime, endTime,
+		j.processor.observabilityDays,
 		time.Minute,
 		[]types2.Statistic{
 			types2.StatisticSum,
@@ -105,7 +103,7 @@ func (j *GetEC2InstanceMetricsJob) Run() error {
 		instanceMetrics[k] = aws2.GetDatapointsAvgFromSum(v, 60)
 	}
 
-	cwaMetrics, err := j.processor.metricProvider.GetMetrics(
+	cwaMetrics, err := j.processor.metricProvider.GetDayByDayMetrics(
 		j.region,
 		"CWAgent",
 		[]string{
@@ -114,7 +112,7 @@ func (j *GetEC2InstanceMetricsJob) Run() error {
 		map[string][]string{
 			"InstanceId": {*j.instance.InstanceId},
 		},
-		startTime, endTime,
+		j.processor.observabilityDays,
 		time.Minute,
 		[]types2.Statistic{
 			types2.StatisticAverage,
@@ -138,7 +136,7 @@ func (j *GetEC2InstanceMetricsJob) Run() error {
 
 	volumeMetrics := map[string]map[string][]types2.Datapoint{}
 	for _, v := range volumeIDs {
-		volumeMetricsMap, err := j.processor.metricProvider.GetMetrics(
+		volumeMetricsMap, err := j.processor.metricProvider.GetDayByDayMetrics(
 			j.region,
 			"AWS/EBS",
 			[]string{
@@ -148,7 +146,7 @@ func (j *GetEC2InstanceMetricsJob) Run() error {
 			map[string][]string{
 				"VolumeId": {v},
 			},
-			startTime, endTime,
+			j.processor.observabilityDays,
 			time.Minute,
 			[]types2.Statistic{
 				types2.StatisticSum,
@@ -174,7 +172,7 @@ func (j *GetEC2InstanceMetricsJob) Run() error {
 			map[string][]string{
 				"VolumeId": {v},
 			},
-			1,
+			j.processor.observabilityDays,
 			time.Minute,
 			[]types2.Statistic{
 				types2.StatisticSum,

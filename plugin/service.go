@@ -13,6 +13,8 @@ import (
 	"github.com/kaytu-io/plugin-aws/plugin/processor/ec2_instance"
 	"github.com/kaytu-io/plugin-aws/plugin/version"
 	"math"
+	"strconv"
+	"strings"
 )
 
 type AWSPlugin struct {
@@ -41,6 +43,12 @@ func (p *AWSPlugin) GetConfig() golang.RegisterConfig {
 						Description: "AWS profile for authentication",
 						Required:    false,
 					},
+					{
+						Name:        "observabilityDays",
+						Default:     "1",
+						Description: "Observability Days",
+						Required:    false,
+					},
 				},
 				DefaultPreferences: preferences.DefaultEC2Preferences,
 				LoginRequired:      true,
@@ -53,6 +61,12 @@ func (p *AWSPlugin) GetConfig() golang.RegisterConfig {
 						Name:        "profile",
 						Default:     "",
 						Description: "AWS profile for authentication",
+						Required:    false,
+					},
+					{
+						Name:        "observabilityDays",
+						Default:     "1",
+						Description: "Observability Days",
 						Required:    false,
 					},
 				},
@@ -120,6 +134,13 @@ func (p *AWSPlugin) StartProcess(command string, flags map[string]string, kaytuA
 	}
 	publishResultsReady(false)
 
+	observabilityDays := 1
+	if flags["observabilityDays"] != "" {
+		days, _ := strconv.ParseInt(strings.TrimSpace(flags["observabilityDays"]), 10, 64)
+		if days > 0 {
+			observabilityDays = int(days)
+		}
+	}
 	if command == "ec2-instance" {
 		p.processor = ec2_instance.NewProcessor(
 			awsPrv,
@@ -130,6 +151,7 @@ func (p *AWSPlugin) StartProcess(command string, flags map[string]string, kaytuA
 			jobQueue,
 			configurations,
 			&sdk.SafeCounter{},
+			observabilityDays,
 		)
 	} else if command == "rds-instance" {
 		p.processor = processor2.NewRDSProcessor(
@@ -140,6 +162,7 @@ func (p *AWSPlugin) StartProcess(command string, flags map[string]string, kaytuA
 			kaytuAccessToken,
 			jobQueue,
 			configurations,
+			observabilityDays,
 		)
 	} else {
 		return fmt.Errorf("invalid command: %s", command)

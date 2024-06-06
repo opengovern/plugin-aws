@@ -24,7 +24,7 @@ var DefaultEC2Preferences = []*golang.PreferenceItem{
 	{Service: "EC2Instance", Key: "CPUBreathingRoom", IsNumber: true, Value: wrapperspb.String("10"), PreventPinning: true, Unit: "%"},
 	{Service: "EC2Instance", Key: "MemoryBreathingRoom", IsNumber: true, Value: wrapperspb.String("5"), PreventPinning: true, Unit: "%"},
 	{Service: "EC2Instance", Key: "NetworkBreathingRoom", IsNumber: true, Value: wrapperspb.String("10"), PreventPinning: true, Unit: "%"},
-	{Service: "EC2Instance", Key: "ObservabilityTimePeriod", Value: wrapperspb.String("1"), PreventPinning: true, Unit: "days", PossibleValues: []string{"7"}},
+	//{Service: "EC2Instance", Key: "ObservabilityTimePeriod", IsNumber: true, Value: wrapperspb.String("1"), PreventPinning: true, Unit: "days"},
 	{Service: "EC2Instance", Key: "RuntimeInterval", Value: wrapperspb.String("730"), PreventPinning: true, Unit: "hours", PossibleValues: []string{"730"}},
 	{Service: "EC2Instance", Key: "ExcludeBurstableInstances", Value: wrapperspb.String("if current resource is burstable"), PreventPinning: true, PossibleValues: []string{"No", "Yes", "if current resource is burstable"}},
 	{Service: "EC2Instance", Key: "ExcludeUpsizingFeature", Value: wrapperspb.String("Yes"), PreventPinning: true, PossibleValues: []string{"No", "Yes"}},

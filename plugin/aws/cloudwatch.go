@@ -28,6 +28,8 @@ func (cw *CloudWatch) GetMetrics(
 ) (map[string][]types2.Datapoint, error) {
 	localCfg := cw.cfg
 	localCfg.Region = region
+	startTime = startTime.Truncate(interval)
+	endTime = endTime.Truncate(interval)
 
 	metrics := map[string][]types2.Datapoint{}
 
