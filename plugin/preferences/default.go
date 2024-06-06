@@ -27,13 +27,15 @@ var DefaultEC2Preferences = []*golang.PreferenceItem{
 	{Service: "EC2Instance", Key: "ObservabilityTimePeriod", Value: wrapperspb.String("1"), PreventPinning: true, Unit: "days", PossibleValues: []string{"7"}},
 	{Service: "EC2Instance", Key: "RuntimeInterval", Value: wrapperspb.String("730"), PreventPinning: true, Unit: "hours", PossibleValues: []string{"730"}},
 	{Service: "EC2Instance", Key: "ExcludeBurstableInstances", Value: wrapperspb.String("if current resource is burstable"), PreventPinning: true, PossibleValues: []string{"No", "Yes", "if current resource is burstable"}},
+	{Service: "EC2Instance", Key: "ExcludeUpsizingFeature", Value: wrapperspb.String("Yes"), PreventPinning: true, PossibleValues: []string{"No", "Yes"}},
 	{Service: "EBSVolume", Key: "IOPS", IsNumber: true},
 	{Service: "EBSVolume", Key: "Throughput", IsNumber: true, Unit: "Mbps"},
 	{Service: "EBSVolume", Key: "Size", IsNumber: true, Pinned: true, Unit: "GB"},
 	{Service: "EBSVolume", Key: "VolumeFamily", PossibleValues: []string{"", "General Purpose", "Solid State Drive", "IO Optimized", "Hard Disk Drive"}},
 	{Service: "EBSVolume", Key: "VolumeType", PossibleValues: []string{"", "standard", "io1", "io2", "gp2", "gp3", "sc1", "st1"}},
 	{Service: "EBSVolume", Key: "IOPSBreathingRoom", IsNumber: true, Value: wrapperspb.String("10"), PreventPinning: true, Unit: "%"},
-	{Service: "EBSVolume", Key: "ThroughputBreathingRoom", IsNumber: true, Value: wrapperspb.String("10"), PreventPinning: true, Unit: "%"},
+	{Service: "EBSVolume", Key: "ThroughputBreathingRoom", IsNumber: true, Value: wrapperspb.String("5"), PreventPinning: true, Unit: "%"},
+	{Service: "EBSVolume", Key: "ExcludeUpsizingFeature", Value: wrapperspb.String("Yes"), PreventPinning: true, PossibleValues: []string{"No", "Yes"}},
 }
 
 var DefaultRDSPreferences = []*golang.PreferenceItem{
@@ -54,4 +56,5 @@ var DefaultRDSPreferences = []*golang.PreferenceItem{
 	{Service: "RDSInstance", Key: "NetworkBreathingRoom", IsNumber: true, Value: wrapperspb.String("10"), PreventPinning: true, Unit: "%"},
 	{Service: "RDSInstance", Key: "MemoryBreathingRoom", IsNumber: true, Value: wrapperspb.String("5"), PreventPinning: true, Unit: "%"},
 	{Service: "RDSInstance", Key: "CpuBreathingRoom", IsNumber: true, Value: wrapperspb.String("10"), PreventPinning: true, Unit: "%"},
+	{Service: "RDSInstance", Key: "ExcludeUpsizingFeature", Value: wrapperspb.String("Yes"), PreventPinning: true, PossibleValues: []string{"No", "Yes"}},
 }
