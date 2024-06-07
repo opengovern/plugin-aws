@@ -90,7 +90,7 @@ func (i EC2InstanceItem) EC2InstanceDevice() *golang.Device {
 		Max:     utils.PNetworkThroughputMbps(i.Wastage.RightSizing.NetworkThroughput.Max),
 	}
 	enaProperty := &golang.Property{
-		Key:     "  ENA",
+		Key:     "  ENA Support",
 		Current: fmt.Sprintf("%s", i.Wastage.RightSizing.Current.ENASupported),
 	}
 
