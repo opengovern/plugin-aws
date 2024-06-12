@@ -246,6 +246,7 @@ func (p *AWSPlugin) StartProcess(command string, flags map[string]string, kaytuA
 			cloudWatch,
 			identification,
 			publishOptimizationItem,
+			publishResultSummary,
 			kaytuAccessToken,
 			jobQueue,
 			configurations,

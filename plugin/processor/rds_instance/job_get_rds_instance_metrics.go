@@ -187,6 +187,7 @@ func (j *GetRDSInstanceMetricsJob) Run() error {
 
 	j.processor.items.Set(*oi.Instance.DBInstanceIdentifier, oi)
 	j.processor.publishOptimizationItem(oi.ToOptimizationItem())
+	j.processor.UpdateSummary(*oi.Instance.DBInstanceIdentifier)
 	if !oi.Skipped && !oi.LazyLoadingEnabled {
 		j.processor.jobQueue.Push(NewOptimizeRDSJob(j.processor, oi))
 	}

@@ -109,6 +109,7 @@ func (j *ListRDSInstancesInRegionJob) Run() error {
 		// just to show the loading
 		j.processor.items.Set(*oi.Instance.DBInstanceIdentifier, oi)
 		j.processor.publishOptimizationItem(oi.ToOptimizationItem())
+		j.processor.UpdateSummary(*oi.Instance.DBInstanceIdentifier)
 	}
 
 	for _, instance := range instances {

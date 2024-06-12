@@ -83,6 +83,7 @@ func (j *OptimizeRDSInstanceJob) Run() error {
 		j.item.OptimizationLoading = false
 		j.processor.items.Set(*j.item.Instance.DBInstanceIdentifier, j.item)
 		j.processor.publishOptimizationItem(j.item.ToOptimizationItem())
+		j.processor.UpdateSummary(*j.item.Instance.DBInstanceIdentifier)
 		return nil
 	}
 
@@ -98,5 +99,6 @@ func (j *OptimizeRDSInstanceJob) Run() error {
 	}
 	j.processor.items.Set(*j.item.Instance.DBInstanceIdentifier, j.item)
 	j.processor.publishOptimizationItem(j.item.ToOptimizationItem())
+	j.processor.UpdateSummary(*j.item.Instance.DBInstanceIdentifier)
 	return nil
 }

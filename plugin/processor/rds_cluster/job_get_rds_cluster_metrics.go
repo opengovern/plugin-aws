@@ -244,6 +244,7 @@ func (j *GetRDSClusterMetricsJob) Run() error {
 
 	j.processor.items.Set(*oi.Cluster.DBClusterIdentifier, oi)
 	j.processor.publishOptimizationItem(oi.ToOptimizationItem())
+	j.processor.UpdateSummary(*oi.Cluster.DBClusterIdentifier)
 	if !oi.Skipped && !oi.LazyLoadingEnabled {
 		j.processor.jobQueue.Push(NewOptimizeRDSJob(j.processor, oi))
 	}
