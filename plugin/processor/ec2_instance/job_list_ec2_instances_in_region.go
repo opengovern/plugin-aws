@@ -134,6 +134,7 @@ func (j *ListEC2InstancesInRegionJob) Run() error {
 		// just to show the loading
 		j.processor.items.Set(*oi.Instance.InstanceId, oi)
 		j.processor.publishOptimizationItem(oi.ToOptimizationItem())
+		j.processor.UpdateSummary(*oi.Instance.InstanceId)
 	}
 
 	for _, instance := range instances {

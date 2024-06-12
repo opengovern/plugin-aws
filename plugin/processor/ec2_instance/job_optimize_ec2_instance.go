@@ -95,6 +95,7 @@ func (j *OptimizeEC2InstanceJob) Run() error {
 		j.item.OptimizationLoading = false
 		j.processor.items.Set(*j.item.Instance.InstanceId, j.item)
 		j.processor.publishOptimizationItem(j.item.ToOptimizationItem())
+		j.processor.UpdateSummary(*j.item.Instance.InstanceId)
 		return nil
 	}
 
@@ -112,5 +113,6 @@ func (j *OptimizeEC2InstanceJob) Run() error {
 	}
 	j.processor.items.Set(*j.item.Instance.InstanceId, j.item)
 	j.processor.publishOptimizationItem(j.item.ToOptimizationItem())
+	j.processor.UpdateSummary(*j.item.Instance.InstanceId)
 	return nil
 }

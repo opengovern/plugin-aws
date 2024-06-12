@@ -212,6 +212,14 @@ func (p *AWSPlugin) StartProcess(command string, flags map[string]string, kaytuA
 	}
 	publishResultsReady(false)
 
+	publishResultSummary := func(summary *golang.ResultSummary) {
+		p.stream.Send(&golang.PluginMessage{
+			PluginMessage: &golang.PluginMessage_Summary{
+				Summary: summary,
+			},
+		})
+	}
+
 	observabilityDays := 1
 	if flags["observabilityDays"] != "" {
 		days, _ := strconv.ParseInt(strings.TrimSpace(flags["observabilityDays"]), 10, 64)
@@ -225,6 +233,7 @@ func (p *AWSPlugin) StartProcess(command string, flags map[string]string, kaytuA
 			cloudWatch,
 			identification,
 			publishOptimizationItem,
+			publishResultSummary,
 			kaytuAccessToken,
 			jobQueue,
 			configurations,
