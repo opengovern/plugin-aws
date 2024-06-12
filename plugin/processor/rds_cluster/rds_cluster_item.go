@@ -7,6 +7,7 @@ import (
 	"github.com/kaytu-io/kaytu/pkg/plugin/proto/src/golang"
 	"github.com/kaytu-io/kaytu/pkg/utils"
 	"github.com/kaytu-io/plugin-aws/plugin/kaytu"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 	"strings"
 )
 
@@ -24,25 +25,55 @@ type RDSClusterItem struct {
 	Wastage kaytu.AwsClusterWastageResponse
 }
 
-func (c RDSClusterItem) RDSInstanceDevice() []*golang.Device {
-	var devices []*golang.Device
+func (c RDSClusterItem) RDSInstanceDevice() ([]*golang.ChartRow, map[string]*golang.Properties) {
+	var deviceRows []*golang.ChartRow
+	deviceProps := make(map[string]*golang.Properties)
+
 	for _, i := range c.Instances {
 		hashedId := utils.HashString(*i.DBInstanceIdentifier)
+		computeProps := &golang.Properties{}
+		storageProps := &golang.Properties{}
 
-		ec2InstanceCompute := &golang.Device{
-			Properties:   nil,
-			DeviceId:     fmt.Sprintf("%s-compute", *i.DBInstanceIdentifier),
-			ResourceType: "RDS Instance Compute",
-			Runtime:      "730 hours",
-			CurrentCost:  c.Wastage.RightSizing[hashedId].Current.ComputeCost,
+		computeRow := golang.ChartRow{
+			RowId:  fmt.Sprintf("%s-compute", *i.DBInstanceIdentifier),
+			Values: make(map[string]*golang.ChartRowItem),
 		}
-		ec2InstanceStorage := &golang.Device{
-			Properties:   nil,
-			DeviceId:     fmt.Sprintf("%s-storage", *i.DBInstanceIdentifier),
-			ResourceType: "RDS Instance Storage",
-			Runtime:      "730 hours",
-			CurrentCost:  c.Wastage.RightSizing[hashedId].Current.StorageCost,
+		computeRow.Values["resource_id"] = &golang.ChartRowItem{
+			Value: fmt.Sprintf("%s-compute", *i.DBInstanceIdentifier),
 		}
+		computeRow.Values["resource_name"] = &golang.ChartRowItem{
+			Value: fmt.Sprintf("%s-compute", *i.DBInstanceIdentifier),
+		}
+		computeRow.Values["resource_type"] = &golang.ChartRowItem{
+			Value: "RDS Instance Compute",
+		}
+		computeRow.Values["runtime"] = &golang.ChartRowItem{
+			Value: "730 hours",
+		}
+		computeRow.Values["current_cost"] = &golang.ChartRowItem{
+			Value: utils.FormatPriceFloat(c.Wastage.RightSizing[hashedId].Current.ComputeCost),
+		}
+
+		storageRow := golang.ChartRow{
+			RowId:  fmt.Sprintf("%s-storage", *i.DBInstanceIdentifier),
+			Values: make(map[string]*golang.ChartRowItem),
+		}
+		storageRow.Values["resource_id"] = &golang.ChartRowItem{
+			Value: fmt.Sprintf("%s-storage", *i.DBInstanceIdentifier),
+		}
+		storageRow.Values["resource_name"] = &golang.ChartRowItem{
+			Value: *i.DBInstanceIdentifier,
+		}
+		storageRow.Values["resource_type"] = &golang.ChartRowItem{
+			Value: "RDS Instance Storage",
+		}
+		storageRow.Values["runtime"] = &golang.ChartRowItem{
+			Value: "730 hours",
+		}
+		storageRow.Values["current_cost"] = &golang.ChartRowItem{
+			Value: utils.FormatPriceFloat(c.Wastage.RightSizing[hashedId].Current.StorageCost),
+		}
+
 		regionProperty := &golang.Property{
 			Key:     "Region",
 			Current: c.Wastage.RightSizing[hashedId].Current.Region,
@@ -133,8 +164,18 @@ func (c RDSClusterItem) RDSInstanceDevice() []*golang.Device {
 		if c.Wastage.RightSizing[hashedId].Recommended != nil {
 			processorProperty.Recommended = c.Wastage.RightSizing[hashedId].Recommended.Processor
 			architectureProperty.Recommended = c.Wastage.RightSizing[hashedId].Recommended.Architecture
-			ec2InstanceCompute.RightSizedCost = c.Wastage.RightSizing[hashedId].Recommended.ComputeCost
-			ec2InstanceStorage.RightSizedCost = c.Wastage.RightSizing[hashedId].Recommended.StorageCost
+			computeRow.Values["right_sized_cost"] = &golang.ChartRowItem{
+				Value: utils.FormatPriceFloat(c.Wastage.RightSizing[hashedId].Recommended.ComputeCost),
+			}
+			computeRow.Values["savings"] = &golang.ChartRowItem{
+				Value: utils.FormatPriceFloat(c.Wastage.RightSizing[hashedId].Current.ComputeCost - c.Wastage.RightSizing[hashedId].Recommended.ComputeCost),
+			}
+			storageRow.Values["right_sized_cost"] = &golang.ChartRowItem{
+				Value: utils.FormatPriceFloat(c.Wastage.RightSizing[hashedId].Recommended.StorageCost),
+			}
+			storageRow.Values["savings"] = &golang.ChartRowItem{
+				Value: utils.FormatPriceFloat(c.Wastage.RightSizing[hashedId].Current.StorageCost - c.Wastage.RightSizing[hashedId].Recommended.StorageCost),
+			}
 			regionProperty.Recommended = c.Wastage.RightSizing[hashedId].Recommended.Region
 			instanceSizeProperty.Recommended = c.Wastage.RightSizing[hashedId].Recommended.InstanceType
 			engineProperty.Recommended = c.Wastage.RightSizing[hashedId].Recommended.Engine
@@ -157,62 +198,110 @@ func (c RDSClusterItem) RDSInstanceDevice() []*golang.Device {
 			}
 			storageThroughputProperty.Recommended = utils.PStorageThroughputMbps(c.Wastage.RightSizing[hashedId].Recommended.StorageThroughput)
 		}
-		ec2InstanceCompute.Properties = append(ec2InstanceCompute.Properties, regionProperty)
-		ec2InstanceCompute.Properties = append(ec2InstanceCompute.Properties, instanceSizeProperty)
-		ec2InstanceCompute.Properties = append(ec2InstanceCompute.Properties, engineProperty)
-		ec2InstanceCompute.Properties = append(ec2InstanceCompute.Properties, engineVerProperty)
-		ec2InstanceCompute.Properties = append(ec2InstanceCompute.Properties, clusterTypeProperty)
-		ec2InstanceStorage.Properties = append(ec2InstanceStorage.Properties, regionProperty)
+		computeProps.Properties = append(computeProps.Properties, regionProperty)
+		computeProps.Properties = append(computeProps.Properties, instanceSizeProperty)
+		computeProps.Properties = append(computeProps.Properties, engineProperty)
+		computeProps.Properties = append(computeProps.Properties, engineVerProperty)
+		computeProps.Properties = append(computeProps.Properties, clusterTypeProperty)
+		storageProps.Properties = append(storageProps.Properties, regionProperty)
 		//ec2InstanceStorage.Properties = append(ec2Instance.Properties, &golang.Property{
 		//	Key: "Compute",
 		//})
-		ec2InstanceCompute.Properties = append(ec2InstanceCompute.Properties, vCPUProperty)
-		ec2InstanceCompute.Properties = append(ec2InstanceCompute.Properties, memoryProperty)
-		ec2InstanceCompute.Properties = append(ec2InstanceCompute.Properties, processorProperty)
-		ec2InstanceCompute.Properties = append(ec2InstanceCompute.Properties, architectureProperty)
+		computeProps.Properties = append(computeProps.Properties, vCPUProperty)
+		computeProps.Properties = append(computeProps.Properties, memoryProperty)
+		computeProps.Properties = append(computeProps.Properties, processorProperty)
+		computeProps.Properties = append(computeProps.Properties, architectureProperty)
 		//ec2Instance.Properties = append(ec2Instance.Properties, &golang.Property{
 		//	Key: "Storage",
 		//})
-		ec2InstanceStorage.Properties = append(ec2InstanceStorage.Properties, storageTypeProperty)
-		ec2InstanceStorage.Properties = append(ec2InstanceStorage.Properties, storageSizeProperty)
-		ec2InstanceStorage.Properties = append(ec2InstanceStorage.Properties, storageIOPSProperty)
-		ec2InstanceStorage.Properties = append(ec2InstanceStorage.Properties, storageThroughputProperty)
+		storageProps.Properties = append(storageProps.Properties, storageTypeProperty)
+		storageProps.Properties = append(storageProps.Properties, storageSizeProperty)
+		storageProps.Properties = append(storageProps.Properties, storageIOPSProperty)
+		storageProps.Properties = append(storageProps.Properties, storageThroughputProperty)
 
-		devices = append(devices, ec2InstanceCompute, ec2InstanceStorage)
+		deviceProps[fmt.Sprintf("%s-compute", *i.DBInstanceIdentifier)] = computeProps
+		deviceProps[fmt.Sprintf("%s-storage", *i.DBInstanceIdentifier)] = storageProps
+		deviceRows = append(deviceRows, &computeRow, &storageRow)
 	}
 
-	return devices
+	return deviceRows, deviceProps
 }
 
-func (i RDSClusterItem) Devices() []*golang.Device {
+func (i RDSClusterItem) Devices() ([]*golang.ChartRow, map[string]*golang.Properties) {
 	return i.RDSInstanceDevice()
 }
 
-func (i RDSClusterItem) ToOptimizationItem() *golang.OptimizationItem {
-	oi := &golang.OptimizationItem{
-		Id:                 *i.Cluster.DBClusterIdentifier,
-		ResourceType:       *i.Cluster.Engine,
-		Region:             i.Region,
-		Devices:            i.Devices(),
+func (i RDSClusterItem) ToOptimizationItem() *golang.ChartOptimizationItem {
+	var platform string
+	if i.Cluster.Engine != nil {
+		platform = *i.Cluster.Engine
+	}
+
+	status := ""
+	if i.Skipped {
+		status = fmt.Sprintf("skipped - %s", i.SkipReason)
+	} else if i.LazyLoadingEnabled && !i.OptimizationLoading {
+		status = "press enter to load"
+	} else if i.OptimizationLoading {
+		status = "loading"
+	} else {
+		totalSaving := 0.0
+		totalCurrentCost := 0.0
+		for _, rs := range i.Wastage.RightSizing {
+			totalSaving += rs.Current.ComputeCost - rs.Recommended.ComputeCost
+			totalCurrentCost += rs.Current.ComputeCost
+			totalSaving += rs.Current.StorageCost - rs.Recommended.StorageCost
+			totalCurrentCost += rs.Current.StorageCost
+			status = fmt.Sprintf("%s (%.2f%%)", utils.FormatPriceFloat(totalSaving), (totalSaving/totalCurrentCost)*100)
+		}
+	}
+
+	deviceRows, deviceProps := i.Devices()
+
+	oi := &golang.ChartOptimizationItem{
+		OverviewChartRow: &golang.ChartRow{
+			RowId: *i.Cluster.DBClusterIdentifier,
+			Values: map[string]*golang.ChartRowItem{
+				"x_kaytu_right_arrow": {
+					Value: "→",
+				},
+				"resource_id": {
+					Value: *i.Cluster.DBClusterIdentifier,
+				},
+				"resource_name": {
+					Value: *i.Cluster.DBClusterIdentifier,
+				},
+				"resource_type": {
+					Value: *i.Cluster.Engine,
+				},
+				"region": {
+					Value: i.Region,
+				},
+				"platform": {
+					Value: platform,
+				},
+				"total_saving": {
+					Value: status,
+				},
+			},
+		},
+		DevicesChartRows:   deviceRows,
+		DevicesProperties:  deviceProps,
 		Preferences:        i.Preferences,
 		Description:        "", //c.Wastage.RightSizing[utils.HashString(*i.DBInstanceIdentifier)].Description, //TODO-Saleh
 		Loading:            i.OptimizationLoading,
 		Skipped:            i.Skipped,
-		SkipReason:         i.SkipReason,
+		SkipReason:         nil,
 		LazyLoadingEnabled: i.LazyLoadingEnabled,
 	}
-
-	if i.Cluster.Engine != nil {
-		oi.Platform = *i.Cluster.Engine
+	if i.SkipReason != "" {
+		oi.SkipReason = &wrapperspb.StringValue{Value: i.SkipReason}
 	}
 	//for _, t := range i.Tags {
 	//	if t.Key != nil && strings.ToLower(*t.Key) == "name" && t.Value != nil {
 	//		oi.Name = *t.Value
 	//	}
 	//}
-	if oi.Name == "" {
-		oi.Name = *i.Cluster.DBClusterIdentifier
-	}
 
 	return oi
 }

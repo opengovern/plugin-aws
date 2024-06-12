@@ -74,6 +74,84 @@ func (p *AWSPlugin) GetConfig() golang.RegisterConfig {
 				LoginRequired:      true,
 			},
 		},
+		OverviewChart: &golang.ChartDefinition{
+			Columns: []*golang.ChartColumnItem{
+				{
+					Id:    "resource_id",
+					Name:  "Resource ID",
+					Width: 23,
+				},
+				{
+					Id:    "resource_name",
+					Name:  "Resource Name",
+					Width: 23,
+				},
+				{
+					Id:    "resource_type",
+					Name:  "Resource Type",
+					Width: 15,
+				},
+				{
+					Id:    "region",
+					Name:  "Region",
+					Width: 15,
+				},
+				{
+					Id:    "platform",
+					Name:  "Platform",
+					Width: 15,
+				},
+				{
+					Id:    "total_saving",
+					Name:  "Total Saving (Monthly)",
+					Width: 40,
+				},
+				{
+					Id:    "x_kaytu_right_arrow",
+					Name:  "",
+					Width: 1,
+				},
+			},
+		},
+		DevicesChart: &golang.ChartDefinition{
+			Columns: []*golang.ChartColumnItem{
+				{
+					Id:    "resource_id",
+					Name:  "Resource ID",
+					Width: 23,
+				},
+				{
+					Id:    "resource_name",
+					Name:  "Resource Name",
+					Width: 23,
+				},
+				{
+					Id:    "resource_type",
+					Name:  "ResourceType",
+					Width: 15,
+				},
+				{
+					Id:    "runtime",
+					Name:  "Runtime",
+					Width: 10,
+				},
+				{
+					Id:    "current_cost",
+					Name:  "Current Cost",
+					Width: 20,
+				},
+				{
+					Id:    "right_sized_cost",
+					Name:  "Right sized Cost",
+					Width: 20,
+				},
+				{
+					Id:    "savings",
+					Name:  "Savings",
+					Width: 20,
+				},
+			},
+		},
 	}
 }
 
@@ -115,10 +193,10 @@ func (p *AWSPlugin) StartProcess(command string, flags map[string]string, kaytuA
 		}
 	}
 
-	publishOptimizationItem := func(item *golang.OptimizationItem) {
+	publishOptimizationItem := func(item *golang.ChartOptimizationItem) {
 		p.stream.Send(&golang.PluginMessage{
-			PluginMessage: &golang.PluginMessage_Oi{
-				Oi: item,
+			PluginMessage: &golang.PluginMessage_Coi{
+				Coi: item,
 			},
 		})
 	}

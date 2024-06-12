@@ -13,7 +13,7 @@ type Processor struct {
 	metricProvider          *aws.CloudWatch
 	identification          map[string]string
 	items                   util.ConcurrentMap[string, RDSInstanceItem]
-	publishOptimizationItem func(item *golang.OptimizationItem)
+	publishOptimizationItem func(item *golang.ChartOptimizationItem)
 	kaytuAcccessToken       string
 	jobQueue                *sdk.JobQueue
 	configuration           *kaytu.Configuration
@@ -25,7 +25,7 @@ func NewProcessor(
 	provider *aws.AWS,
 	metricProvider *aws.CloudWatch,
 	identification map[string]string,
-	publishOptimizationItem func(item *golang.OptimizationItem),
+	publishOptimizationItem func(item *golang.ChartOptimizationItem),
 	kaytuAcccessToken string,
 	jobQueue *sdk.JobQueue,
 	configurations *kaytu.Configuration,
