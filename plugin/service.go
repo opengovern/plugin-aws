@@ -256,6 +256,15 @@ func (p *AWSPlugin) StartProcess(command string, flags map[string]string, kaytuA
 		return fmt.Errorf("invalid command: %s", command)
 	}
 	jobQueue.SetOnFinish(func() {
+		fmt.Println("HERE!1")
+		publishNonInteractiveExport := func(ex *golang.NonInteractiveExport) {
+			p.stream.Send(&golang.PluginMessage{
+				PluginMessage: &golang.PluginMessage_NonInteractive{
+					NonInteractive: ex,
+				},
+			})
+		}
+		publishNonInteractiveExport(p.processor.ExportNonInteractive())
 		publishResultsReady(true)
 	})
 

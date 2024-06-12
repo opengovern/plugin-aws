@@ -34,3 +34,23 @@ func (m *RDSProcessor) ReEvaluate(id string, items []*golang.PreferenceItem) {
 		m.rdsClusterProcessor.ReEvaluate(id, items)
 	}
 }
+
+func (m *RDSProcessor) ExportNonInteractive() *golang.NonInteractiveExport {
+	return &golang.NonInteractiveExport{
+		Csv: m.exportCsv(),
+	}
+}
+
+func (m *RDSProcessor) exportCsv() []*golang.CSVRow {
+	headers := []string{
+		"AccountID", "Region / AZ", "Resource Type", "Device ID", "Device Name", "Platform / Runtime Engine",
+		"Device Runtime (Hrs)", "Current Cost", "Recommendation Cost", "Net Savings", "Current Spec",
+		"Suggested Spec", "Parent Device", "Justification", "Additional Details",
+	}
+	var rows []*golang.CSVRow
+	rows = append(rows, &golang.CSVRow{Row: headers})
+	rows = append(rows, m.rdsInstanceProcessor.ExportCsv()...)
+	rows = append(rows, m.rdsClusterProcessor.ExportCsv()...)
+
+	return rows
+}
