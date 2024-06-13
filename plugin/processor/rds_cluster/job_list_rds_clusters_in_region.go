@@ -127,6 +127,7 @@ func (j *ListRDSClustersInRegionJob) Run() error {
 		// just to show the loading
 		j.processor.items.Set(*oi.Cluster.DBClusterIdentifier, oi)
 		j.processor.publishOptimizationItem(oi.ToOptimizationItem())
+		j.processor.UpdateSummary(*oi.Cluster.DBClusterIdentifier)
 	}
 
 	for _, cluster := range clusters {

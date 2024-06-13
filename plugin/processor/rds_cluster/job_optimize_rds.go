@@ -111,5 +111,6 @@ func (j *OptimizeRDSClusterJob) Run() error {
 	}
 	j.processor.items.Set(*j.item.Cluster.DBClusterIdentifier, j.item)
 	j.processor.publishOptimizationItem(j.item.ToOptimizationItem())
+	j.processor.UpdateSummary(*j.item.Cluster.DBClusterIdentifier)
 	return nil
 }

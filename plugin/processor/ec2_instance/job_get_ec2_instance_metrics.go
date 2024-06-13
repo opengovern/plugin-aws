@@ -222,6 +222,7 @@ func (j *GetEC2InstanceMetricsJob) Run() error {
 	}
 	j.processor.items.Set(*oi.Instance.InstanceId, oi)
 	j.processor.publishOptimizationItem(oi.ToOptimizationItem())
+	j.processor.UpdateSummary(*oi.Instance.InstanceId)
 	if !oi.Skipped && !oi.LazyLoadingEnabled {
 		j.processor.jobQueue.Push(NewOptimizeEC2InstanceJob(j.processor, oi))
 	}
