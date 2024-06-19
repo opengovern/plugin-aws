@@ -12,7 +12,7 @@ import (
 	kaytu2 "github.com/kaytu-io/plugin-aws/plugin/kaytu"
 	util "github.com/kaytu-io/plugin-aws/utils"
 	"strings"
-	"sync"
+	"sync/atomic"
 )
 
 type Processor struct {
@@ -25,11 +25,10 @@ type Processor struct {
 	kaytuAcccessToken       string
 	jobQueue                *sdk.JobQueue
 	configuration           *kaytu2.Configuration
-	lazyloadCounter         *sdk.SafeCounter
+	lazyloadCounter         atomic.Uint32
 	observabilityDays       int
 
-	summary      map[string]EC2InstanceSummary
-	summaryMutex sync.RWMutex
+	summary util.ConcurrentMap[string, EC2InstanceSummary]
 }
 
 func NewProcessor(
@@ -41,7 +40,6 @@ func NewProcessor(
 	kaytuAcccessToken string,
 	jobQueue *sdk.JobQueue,
 	configurations *kaytu2.Configuration,
-	lazyloadCounter *sdk.SafeCounter,
 	observabilityDays int,
 ) *Processor {
 	r := &Processor{
@@ -54,11 +52,11 @@ func NewProcessor(
 		kaytuAcccessToken:       kaytuAcccessToken,
 		jobQueue:                jobQueue,
 		configuration:           configurations,
-		lazyloadCounter:         lazyloadCounter,
 		observabilityDays:       observabilityDays,
 
-		summary:      map[string]EC2InstanceSummary{},
-		summaryMutex: sync.RWMutex{},
+		lazyloadCounter: atomic.Uint32{},
+
+		summary: util.NewMap[string, EC2InstanceSummary](),
 	}
 	jobQueue.Push(NewListAllRegionsJob(r))
 	return r
@@ -85,10 +83,10 @@ func (m *Processor) exportCsv() []*golang.CSVRow {
 	}
 	var rows []*golang.CSVRow
 	rows = append(rows, &golang.CSVRow{Row: headers})
-	for id, _ := range m.summary {
+	m.summary.Range(func(id string, _ EC2InstanceSummary) bool {
 		if _, ok := m.items.Get(id); !ok {
 			fmt.Println("Skipping item", id)
-			continue
+			return true
 		}
 		i, _ := m.items.Get(id)
 		var name string
@@ -194,7 +192,9 @@ func (m *Processor) exportCsv() []*golang.CSVRow {
 				ebsRecSpec, *i.Instance.InstanceId, i.Wastage.RightSizing.Description, strings.Join(ebsAdditionalDetails, "---")}
 			rows = append(rows, &golang.CSVRow{Row: vRow})
 		}
-	}
+
+		return true
+	})
 	return rows
 }
 
@@ -217,12 +217,12 @@ func toEBSVolume(v types.Volume) kaytu2.EC2Volume {
 func (m *Processor) ResultsSummary() *golang.ResultSummary {
 	summary := &golang.ResultSummary{}
 	var totalCost, savings float64
-	m.summaryMutex.RLock()
-	for _, item := range m.summary {
+	m.summary.Range(func(_ string, item EC2InstanceSummary) bool {
 		totalCost += item.CurrentRuntimeCost
 		savings += item.Savings
-	}
-	m.summaryMutex.RUnlock()
+		return true
+	})
+
 	summary.Message = fmt.Sprintf("Current runtime cost: %s, Savings: %s",
 		style.CostStyle.Render(fmt.Sprintf("%s", utils.FormatPriceFloat(totalCost))), style.SavingStyle.Render(fmt.Sprintf("%s", utils.FormatPriceFloat(savings))))
 	return summary
@@ -239,13 +239,11 @@ func (m *Processor) UpdateSummary(itemId string) {
 		}
 		totalSaving += i.Wastage.RightSizing.Current.Cost - i.Wastage.RightSizing.Recommended.Cost
 		totalCurrentCost += i.Wastage.RightSizing.Current.Cost
-		m.summaryMutex.Lock()
-		m.summary[itemId] = EC2InstanceSummary{
+
+		m.summary.Set(itemId, EC2InstanceSummary{
 			CurrentRuntimeCost: totalCurrentCost,
 			Savings:            totalSaving,
-		}
-		m.summaryMutex.Unlock()
-
+		})
 	}
 	m.publishResultSummary(m.ResultsSummary())
 }

@@ -1,6 +1,7 @@
 package rds_cluster
 
 import (
+	"context"
 	"fmt"
 	types2 "github.com/aws/aws-sdk-go-v2/service/cloudwatch/types"
 	"github.com/aws/aws-sdk-go-v2/service/rds/types"
@@ -33,7 +34,7 @@ func (j *GetRDSClusterMetricsJob) Id() string {
 func (j *GetRDSClusterMetricsJob) Description() string {
 	return fmt.Sprintf("Getting metrics of %s", *j.cluster.DBClusterIdentifier)
 }
-func (j *GetRDSClusterMetricsJob) Run() error {
+func (j *GetRDSClusterMetricsJob) Run(ctx context.Context) error {
 	allMetrics := map[string]map[string][]types2.Datapoint{}
 	for _, instance := range j.instances {
 		isAurora := j.cluster.DBClusterIdentifier != nil && strings.Contains(strings.ToLower(*j.cluster.Engine), "aurora")

@@ -1,5 +1,7 @@
 package ec2_instance
 
+import "context"
+
 type ListAllRegionsJob struct {
 	processor *Processor
 }
@@ -16,7 +18,7 @@ func (j *ListAllRegionsJob) Id() string {
 func (j *ListAllRegionsJob) Description() string {
 	return "Listing all available regions (EC2 Instance)"
 }
-func (j *ListAllRegionsJob) Run() error {
+func (j *ListAllRegionsJob) Run(ctx context.Context) error {
 	regions, err := j.processor.provider.ListAllRegions()
 	if err != nil {
 		return err

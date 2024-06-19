@@ -1,6 +1,7 @@
 package rds_instance
 
 import (
+	"context"
 	"fmt"
 	"github.com/aws/aws-sdk-go-v2/service/rds/types"
 	"github.com/google/uuid"
@@ -28,7 +29,7 @@ func (j *OptimizeRDSInstanceJob) Id() string {
 func (j *OptimizeRDSInstanceJob) Description() string {
 	return fmt.Sprintf("Optimizing %s", *j.item.Instance.DBInstanceIdentifier)
 }
-func (j *OptimizeRDSInstanceJob) Run() error {
+func (j *OptimizeRDSInstanceJob) Run(ctx context.Context) error {
 	if j.item.LazyLoadingEnabled {
 		j.processor.jobQueue.Push(NewGetRDSInstanceMetricsJob(j.processor, j.item.Region, j.item.Instance))
 		return nil

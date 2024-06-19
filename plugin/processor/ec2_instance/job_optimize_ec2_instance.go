@@ -1,6 +1,7 @@
 package ec2_instance
 
 import (
+	"context"
 	"fmt"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/google/uuid"
@@ -28,7 +29,7 @@ func (j *OptimizeEC2InstanceJob) Id() string {
 func (j *OptimizeEC2InstanceJob) Description() string {
 	return fmt.Sprintf("Optimizing %s", *j.item.Instance.InstanceId)
 }
-func (j *OptimizeEC2InstanceJob) Run() error {
+func (j *OptimizeEC2InstanceJob) Run(ctx context.Context) error {
 	if j.item.LazyLoadingEnabled {
 		j.processor.jobQueue.Push(NewGetEC2InstanceMetricsJob(j.processor, j.item.Region, j.item.Instance))
 		return nil

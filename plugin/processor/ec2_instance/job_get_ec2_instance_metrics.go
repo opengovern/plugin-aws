@@ -1,6 +1,7 @@
 package ec2_instance
 
 import (
+	"context"
 	"fmt"
 	types2 "github.com/aws/aws-sdk-go-v2/service/cloudwatch/types"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
@@ -31,7 +32,7 @@ func (j *GetEC2InstanceMetricsJob) Id() string {
 func (j *GetEC2InstanceMetricsJob) Description() string {
 	return fmt.Sprintf("Getting metrics of %s", *j.instance.InstanceId)
 }
-func (j *GetEC2InstanceMetricsJob) Run() error {
+func (j *GetEC2InstanceMetricsJob) Run(ctx context.Context) error {
 	isAutoScaling := false
 	for _, tag := range j.instance.Tags {
 		if *tag.Key == "aws:autoscaling:groupName" && tag.Value != nil && *tag.Value != "" {

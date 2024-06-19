@@ -1,6 +1,7 @@
 package ec2_instance
 
 import (
+	"context"
 	"fmt"
 	types2 "github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/google/uuid"
@@ -29,7 +30,7 @@ func (j *ListEC2InstancesInRegionJob) Id() string {
 func (j *ListEC2InstancesInRegionJob) Description() string {
 	return fmt.Sprintf("Listing all EC2 Instances in %s", j.region)
 }
-func (j *ListEC2InstancesInRegionJob) Run() error {
+func (j *ListEC2InstancesInRegionJob) Run(ctx context.Context) error {
 	instances, err := j.processor.provider.ListInstances(j.region)
 	if err != nil {
 		return err
@@ -72,8 +73,8 @@ func (j *ListEC2InstancesInRegionJob) Run() error {
 		}
 
 		if !oi.Skipped {
-			j.processor.lazyloadCounter.Increment()
-			if j.processor.lazyloadCounter.Get() > j.processor.configuration.EC2LazyLoad {
+			j.processor.lazyloadCounter.Add(1)
+			if j.processor.lazyloadCounter.Load() > uint32(j.processor.configuration.EC2LazyLoad) {
 				oi.LazyLoadingEnabled = true
 			}
 		}

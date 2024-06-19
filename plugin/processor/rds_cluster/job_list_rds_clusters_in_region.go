@@ -1,6 +1,7 @@
 package rds_cluster
 
 import (
+	"context"
 	"fmt"
 	"github.com/aws/aws-sdk-go-v2/service/rds/types"
 	"github.com/google/uuid"
@@ -30,7 +31,7 @@ func (j *ListRDSClustersInRegionJob) Id() string {
 func (j *ListRDSClustersInRegionJob) Description() string {
 	return fmt.Sprintf("Listing all RDS Clusters in %s", j.region)
 }
-func (j *ListRDSClustersInRegionJob) Run() error {
+func (j *ListRDSClustersInRegionJob) Run(ctx context.Context) error {
 	clusters, err := j.processor.provider.ListRDSClusters(j.region)
 	if err != nil {
 		return err
@@ -62,8 +63,8 @@ func (j *ListRDSClustersInRegionJob) Run() error {
 		}
 
 		if !oi.Skipped {
-			j.processor.lazyloadCounter.Increment()
-			if j.processor.lazyloadCounter.Get() > j.processor.configuration.RDSLazyLoad {
+			j.processor.lazyloadCounter.Add(1)
+			if j.processor.lazyloadCounter.Load() > uint32(j.processor.configuration.RDSLazyLoad) {
 				oi.LazyLoadingEnabled = true
 			}
 

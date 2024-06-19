@@ -19,7 +19,7 @@ import (
 
 type AWSPlugin struct {
 	cfg       aws.Config
-	stream    golang.Plugin_RegisterClient
+	stream    *sdk.StreamController
 	processor processor2.Processor
 }
 
@@ -155,7 +155,7 @@ func (p *AWSPlugin) GetConfig() golang.RegisterConfig {
 	}
 }
 
-func (p *AWSPlugin) SetStream(stream golang.Plugin_RegisterClient) {
+func (p *AWSPlugin) SetStream(stream *sdk.StreamController) {
 	p.stream = stream
 }
 
@@ -237,7 +237,6 @@ func (p *AWSPlugin) StartProcess(command string, flags map[string]string, kaytuA
 			kaytuAccessToken,
 			jobQueue,
 			configurations,
-			&sdk.SafeCounter{},
 			observabilityDays,
 		)
 	} else if command == "rds-instance" {
@@ -255,7 +254,7 @@ func (p *AWSPlugin) StartProcess(command string, flags map[string]string, kaytuA
 	} else {
 		return fmt.Errorf("invalid command: %s", command)
 	}
-	jobQueue.SetOnFinish(func() {
+	jobQueue.SetOnFinish(func(ctx context.Context) {
 		fmt.Println("HERE!1")
 		publishNonInteractiveExport := func(ex *golang.NonInteractiveExport) {
 			p.stream.Send(&golang.PluginMessage{
