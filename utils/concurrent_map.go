@@ -1,35 +1,37 @@
 package util
 
-import "sync"
+import (
+	"sync"
+)
 
 type ConcurrentMap[K comparable, V any] struct {
-	data  map[K]V
-	mutex sync.RWMutex
+	data sync.Map
 }
 
 func NewMap[K comparable, V any]() ConcurrentMap[K, V] {
 	return ConcurrentMap[K, V]{
-		data:  map[K]V{},
-		mutex: sync.RWMutex{},
+		data: sync.Map{},
 	}
 }
 
 func (cm *ConcurrentMap[K, V]) Set(key K, value V) {
-	cm.mutex.Lock()
-	defer cm.mutex.Unlock()
-	cm.data[key] = value
+	cm.data.Store(key, value)
 }
 
 func (cm *ConcurrentMap[K, V]) Delete(key K) {
-	cm.mutex.Lock()
-	defer cm.mutex.Unlock()
-	delete(cm.data, key)
+	cm.data.Delete(key)
 }
 
 func (cm *ConcurrentMap[K, V]) Get(key K) (V, bool) {
-	cm.mutex.RLock()
-	defer cm.mutex.RUnlock()
+	v, ok := cm.data.Load(key)
+	if !ok {
+		return *new(V), false
+	}
+	return v.(V), true
+}
 
-	v, ok := cm.data[key]
-	return v, ok
+func (cm *ConcurrentMap[K, V]) Range(f func(key K, value V) bool) {
+	cm.data.Range(func(key, value any) bool {
+		return f(key.(K), value.(V))
+	})
 }

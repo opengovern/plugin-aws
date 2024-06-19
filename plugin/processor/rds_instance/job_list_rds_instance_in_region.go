@@ -1,6 +1,7 @@
 package rds_instance
 
 import (
+	"context"
 	"fmt"
 	"github.com/aws/aws-sdk-go-v2/service/rds/types"
 	"github.com/google/uuid"
@@ -30,7 +31,7 @@ func (j *ListRDSInstancesInRegionJob) Id() string {
 func (j *ListRDSInstancesInRegionJob) Description() string {
 	return fmt.Sprintf("Listing all RDS Instances in %s", j.region)
 }
-func (j *ListRDSInstancesInRegionJob) Run() error {
+func (j *ListRDSInstancesInRegionJob) Run(ctx context.Context) error {
 	instances, err := j.processor.provider.ListRDSInstance(j.region)
 	if err != nil {
 		return err
@@ -55,8 +56,8 @@ func (j *ListRDSInstancesInRegionJob) Run() error {
 		}
 
 		if !oi.Skipped {
-			j.processor.lazyloadCounter.Increment()
-			if j.processor.lazyloadCounter.Get() > j.processor.configuration.RDSLazyLoad {
+			j.processor.lazyloadCounter.Add(1)
+			if j.processor.lazyloadCounter.Load() > uint32(j.processor.configuration.RDSLazyLoad) {
 				oi.LazyLoadingEnabled = true
 			}
 
