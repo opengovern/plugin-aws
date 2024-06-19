@@ -56,8 +56,8 @@ github.com/jmespath/go-jmespath v0.4.0 h1:BEgLn5cpjn8UN1mAw4NjwDrS35OdebyEtFe+9Y
 github.com/jmespath/go-jmespath v0.4.0/go.mod h1:T8mJZnbsbmF+m6zOOFylbeCJqk5+pHWvzYPziyZiYoo=
 github.com/jmespath/go-jmespath/internal/testify v1.5.1 h1:shLQSRRSCCPj3f2gpwzGwWFoC7ycTf1rcQZHOlsJ6N8=
 github.com/jmespath/go-jmespath/internal/testify v1.5.1/go.mod h1:L3OGu8Wl2/fWfCI6z80xFu9LTZmf1ZRjMHUOPmWr69U=
-github.com/kaytu-io/kaytu v0.14.0-rc.0.0.20240619110041-b8fb7e1a0385 h1:Q6VuavKVQwVukE7ctjCWPDz52tGKDCBh9LZSqmx/0G4=
-github.com/kaytu-io/kaytu v0.14.0-rc.0.0.20240619110041-b8fb7e1a0385/go.mod h1:csDLaCgTnp/D9SZuo55KjOzp/BYfkhkeSkGuEiCljtc=
+github.com/kaytu-io/kaytu v0.14.0-rc.0.0.20240619152134-da2811082882 h1:UciJ9Doapj7XFXkHbgjO4OYkYM3kvcCbaE/wF0Cy4Sg=
+github.com/kaytu-io/kaytu v0.14.0-rc.0.0.20240619152134-da2811082882/go.mod h1:csDLaCgTnp/D9SZuo55KjOzp/BYfkhkeSkGuEiCljtc=
 github.com/kr/pretty v0.2.1/go.mod h1:ipq/a2n7PKx3OHsz4KJII5eveXtPO4qwEXGdVfWzfnI=
 github.com/kr/pretty v0.3.1 h1:flRD4NNwYAUpkphVc1HcthR4KEIFJ65n8Mw5qdRn3LE=
 github.com/kr/pretty v0.3.1/go.mod h1:hoEshYVHaxMs3cyo3Yncou5ZscifuDolrwPKZanG3xk=

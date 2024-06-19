@@ -27,7 +27,7 @@ func NewPlugin() *AWSPlugin {
 	return &AWSPlugin{}
 }
 
-func (p *AWSPlugin) GetConfig() golang.RegisterConfig {
+func (p *AWSPlugin) GetConfig(_ context.Context) golang.RegisterConfig {
 	return golang.RegisterConfig{
 		Name:     "kaytu-io/plugin-aws",
 		Version:  version.VERSION,
@@ -155,11 +155,11 @@ func (p *AWSPlugin) GetConfig() golang.RegisterConfig {
 	}
 }
 
-func (p *AWSPlugin) SetStream(stream *sdk.StreamController) {
+func (p *AWSPlugin) SetStream(_ context.Context, stream *sdk.StreamController) {
 	p.stream = stream
 }
 
-func (p *AWSPlugin) StartProcess(command string, flags map[string]string, kaytuAccessToken string, jobQueue *sdk.JobQueue) error {
+func (p *AWSPlugin) StartProcess(ctx context.Context, command string, flags map[string]string, kaytuAccessToken string, jobQueue *sdk.JobQueue) error {
 	profile := flags["profile"]
 	cfg, err := awsConfig.GetConfig(context.Background(), "", "", "", "", &profile, nil)
 	if err != nil {
@@ -270,6 +270,6 @@ func (p *AWSPlugin) StartProcess(command string, flags map[string]string, kaytuA
 	return nil
 }
 
-func (p *AWSPlugin) ReEvaluate(evaluate *golang.ReEvaluate) {
+func (p *AWSPlugin) ReEvaluate(_ context.Context, evaluate *golang.ReEvaluate) {
 	p.processor.ReEvaluate(evaluate.Id, evaluate.Preferences)
 }
