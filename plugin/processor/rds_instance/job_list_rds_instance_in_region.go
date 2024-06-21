@@ -32,7 +32,7 @@ func (j *ListRDSInstancesInRegionJob) Description() string {
 	return fmt.Sprintf("Listing all RDS Instances in %s", j.region)
 }
 func (j *ListRDSInstancesInRegionJob) Run(ctx context.Context) error {
-	instances, err := j.processor.provider.ListRDSInstance(j.region)
+	instances, err := j.processor.provider.ListRDSInstance(ctx, j.region)
 	if err != nil {
 		return err
 	}
@@ -101,7 +101,7 @@ func (j *ListRDSInstancesInRegionJob) Run(ctx context.Context) error {
 				floatThroughput := float64(*oi.Instance.StorageThroughput)
 				req.Instance.StorageThroughput = &floatThroughput
 			}
-			_, err := kaytu.RDSInstanceWastageRequest(req, j.processor.kaytuAcccessToken)
+			_, err := kaytu.RDSInstanceWastageRequest(ctx, req, j.processor.kaytuAcccessToken)
 			if err != nil {
 				return err
 			}

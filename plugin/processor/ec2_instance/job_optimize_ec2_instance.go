@@ -87,7 +87,7 @@ func (j *OptimizeEC2InstanceJob) Run(ctx context.Context) error {
 		Preferences:   preferences.Export(j.item.Preferences),
 		Loading:       false,
 	}
-	res, err := kaytu2.Ec2InstanceWastageRequest(req, j.processor.kaytuAcccessToken)
+	res, err := kaytu2.Ec2InstanceWastageRequest(ctx, req, j.processor.kaytuAcccessToken)
 	if err != nil {
 		return err
 	}

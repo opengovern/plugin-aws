@@ -20,15 +20,15 @@ func NewAWS(cfg aws.Config) (*AWS, error) {
 	return &AWS{cfg: cfg}, nil
 }
 
-func (s *AWS) Identify() (map[string]string, error) {
+func (s *AWS) Identify(ctx context.Context) (map[string]string, error) {
 	client := sts.NewFromConfig(s.cfg)
-	out, err := client.GetCallerIdentity(context.Background(), &sts.GetCallerIdentityInput{})
+	out, err := client.GetCallerIdentity(ctx, &sts.GetCallerIdentityInput{})
 	if err != nil {
 		return nil, errors.New("unable to retrieve AWS account details, please check your AWS cli and ensure that you are logged-in")
 	}
 
 	orgClient := organizations.NewFromConfig(s.cfg)
-	orgOut, _ := orgClient.DescribeOrganization(context.Background(), &organizations.DescribeOrganizationInput{})
+	orgOut, _ := orgClient.DescribeOrganization(ctx, &organizations.DescribeOrganizationInput{})
 
 	identification := map[string]string{}
 	identification["account"] = *out.Account
@@ -44,9 +44,9 @@ func (s *AWS) Identify() (map[string]string, error) {
 	return identification, nil
 }
 
-func (s *AWS) ListAllRegions() ([]string, error) {
+func (s *AWS) ListAllRegions(ctx context.Context) ([]string, error) {
 	regionClient := ec2.NewFromConfig(s.cfg)
-	regions, err := regionClient.DescribeRegions(context.Background(), &ec2.DescribeRegionsInput{AllRegions: aws.Bool(false)})
+	regions, err := regionClient.DescribeRegions(ctx, &ec2.DescribeRegionsInput{AllRegions: aws.Bool(false)})
 	if err != nil {
 		return nil, err
 	}
@@ -57,12 +57,11 @@ func (s *AWS) ListAllRegions() ([]string, error) {
 	return regionCodes, nil
 }
 
-func (s *AWS) ListInstances(region string) ([]types.Instance, error) {
+func (s *AWS) ListInstances(ctx context.Context, region string) ([]types.Instance, error) {
 	localCfg := s.cfg
 	localCfg.Region = region
 
 	var vms []types.Instance
-	ctx := context.Background()
 	client := ec2.NewFromConfig(localCfg)
 	paginator := ec2.NewDescribeInstancesPaginator(client, &ec2.DescribeInstancesInput{})
 	for paginator.HasMorePages() {
@@ -80,7 +79,7 @@ func (s *AWS) ListInstances(region string) ([]types.Instance, error) {
 	return vms, nil
 }
 
-func (s *AWS) ListAttachedVolumes(region string, instance types.Instance) ([]types.Volume, error) {
+func (s *AWS) ListAttachedVolumes(ctx context.Context, region string, instance types.Instance) ([]types.Volume, error) {
 	localCfg := s.cfg
 	localCfg.Region = region
 
@@ -92,7 +91,7 @@ func (s *AWS) ListAttachedVolumes(region string, instance types.Instance) ([]typ
 	}
 
 	client := ec2.NewFromConfig(localCfg)
-	volumesResp, err := client.DescribeVolumes(context.Background(), &ec2.DescribeVolumesInput{
+	volumesResp, err := client.DescribeVolumes(ctx, &ec2.DescribeVolumesInput{
 		VolumeIds: volumeIDs,
 	})
 	if err != nil {
@@ -102,12 +101,11 @@ func (s *AWS) ListAttachedVolumes(region string, instance types.Instance) ([]typ
 	return volumesResp.Volumes, nil
 }
 
-func (s *AWS) ListRDSInstance(region string) ([]rdstype.DBInstance, error) {
+func (s *AWS) ListRDSInstance(ctx context.Context, region string) ([]rdstype.DBInstance, error) {
 	localCfg := s.cfg
 	localCfg.Region = region
 
 	var dbs []rdstype.DBInstance
-	ctx := context.Background()
 	client := rds.NewFromConfig(localCfg)
 	paginator := rds.NewDescribeDBInstancesPaginator(client, &rds.DescribeDBInstancesInput{})
 	for paginator.HasMorePages() {
@@ -123,12 +121,11 @@ func (s *AWS) ListRDSInstance(region string) ([]rdstype.DBInstance, error) {
 	return dbs, nil
 }
 
-func (s *AWS) ListRDSInstanceByCluster(region, clusterId string) ([]rdstype.DBInstance, error) {
+func (s *AWS) ListRDSInstanceByCluster(ctx context.Context, region, clusterId string) ([]rdstype.DBInstance, error) {
 	localCfg := s.cfg
 	localCfg.Region = region
 
 	var dbs []rdstype.DBInstance
-	ctx := context.Background()
 	client := rds.NewFromConfig(localCfg)
 	paginator := rds.NewDescribeDBInstancesPaginator(client, &rds.DescribeDBInstancesInput{
 		Filters: []rdstype.Filter{
@@ -151,12 +148,11 @@ func (s *AWS) ListRDSInstanceByCluster(region, clusterId string) ([]rdstype.DBIn
 	return dbs, nil
 }
 
-func (s *AWS) ListRDSClusters(region string) ([]rdstype.DBCluster, error) {
+func (s *AWS) ListRDSClusters(ctx context.Context, region string) ([]rdstype.DBCluster, error) {
 	localCfg := s.cfg
 	localCfg.Region = region
 
 	var dbs []rdstype.DBCluster
-	ctx := context.Background()
 	client := rds.NewFromConfig(localCfg)
 	paginator := rds.NewDescribeDBClustersPaginator(client, &rds.DescribeDBClustersInput{})
 	for paginator.HasMorePages() {

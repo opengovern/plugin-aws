@@ -40,6 +40,7 @@ func (j *GetRDSClusterMetricsJob) Run(ctx context.Context) error {
 		isAurora := j.cluster.DBClusterIdentifier != nil && strings.Contains(strings.ToLower(*j.cluster.Engine), "aurora")
 		allMetrics[utils.HashString(*instance.DBInstanceIdentifier)] = map[string][]types2.Datapoint{}
 		cwMetrics, err := j.processor.metricProvider.GetDayByDayMetrics(
+			ctx,
 			j.region,
 			"AWS/RDS",
 			[]string{
@@ -67,6 +68,7 @@ func (j *GetRDSClusterMetricsJob) Run(ctx context.Context) error {
 		}
 
 		cwMetrics, err = j.processor.metricProvider.GetDayByDayMetrics(
+			ctx,
 			j.region,
 			"AWS/RDS",
 			[]string{
@@ -98,6 +100,7 @@ func (j *GetRDSClusterMetricsJob) Run(ctx context.Context) error {
 		var clusterMetrics map[string][]types2.Datapoint
 		if !isAurora {
 			volumeThroughput, err = j.processor.metricProvider.GetDayByDayMetrics(
+				ctx,
 				j.region,
 				"AWS/RDS",
 				[]string{
@@ -120,6 +123,7 @@ func (j *GetRDSClusterMetricsJob) Run(ctx context.Context) error {
 				return err
 			}
 			iopsMetrics, err = j.processor.metricProvider.GetDayByDayMetrics(
+				ctx,
 				j.region,
 				"AWS/RDS",
 				[]string{
@@ -143,6 +147,7 @@ func (j *GetRDSClusterMetricsJob) Run(ctx context.Context) error {
 			}
 		} else {
 			volumeThroughput, err = j.processor.metricProvider.GetDayByDayMetrics(
+				ctx,
 				j.region,
 				"AWS/RDS",
 				[]string{
@@ -165,6 +170,7 @@ func (j *GetRDSClusterMetricsJob) Run(ctx context.Context) error {
 				return err
 			}
 			iopsMetrics, err = j.processor.metricProvider.GetDayByDayMetrics(
+				ctx,
 				j.region,
 				"AWS/RDS",
 				[]string{
@@ -187,6 +193,7 @@ func (j *GetRDSClusterMetricsJob) Run(ctx context.Context) error {
 				return err
 			}
 			clusterMetrics, err = j.processor.metricProvider.GetDayByDayMetrics(
+				ctx,
 				j.region,
 				"AWS/RDS",
 				[]string{
