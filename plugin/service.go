@@ -65,7 +65,7 @@ func (p *AWSPlugin) GetConfig(_ context.Context) golang.RegisterConfig {
 					},
 					{
 						Name:        "observabilityDays",
-						Default:     "1",
+						Default:     "5",
 						Description: "Observability Days",
 						Required:    false,
 					},
@@ -220,7 +220,7 @@ func (p *AWSPlugin) StartProcess(ctx context.Context, command string, flags map[
 		})
 	}
 
-	observabilityDays := 1
+	observabilityDays := 5
 	if flags["observabilityDays"] != "" {
 		days, _ := strconv.ParseInt(strings.TrimSpace(flags["observabilityDays"]), 10, 64)
 		if days > 0 {
