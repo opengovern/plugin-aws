@@ -45,7 +45,7 @@ func (p *AWSPlugin) GetConfig(_ context.Context) golang.RegisterConfig {
 					},
 					{
 						Name:        "observabilityDays",
-						Default:     "1",
+						Default:     "5",
 						Description: "Observability Days",
 						Required:    false,
 					},
