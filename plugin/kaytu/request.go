@@ -44,13 +44,13 @@ func Ec2InstanceWastageRequest(ctx context.Context, reqBody EC2InstanceWastageRe
 	}
 
 	if res.StatusCode >= 300 || res.StatusCode < 200 {
-		return nil, fmt.Errorf("server returned status code %d, [requestAbout] : %s", res.StatusCode, string(body))
+		return nil, fmt.Errorf("server returned status code %d, [OptimizeEc2Instance] : %s", res.StatusCode, string(body))
 	}
 
 	response := EC2InstanceWastageResponse{}
 	err = json.Unmarshal(body, &response)
 	if err != nil {
-		return nil, fmt.Errorf("[requestAbout] : %v", err)
+		return nil, fmt.Errorf("[OptimizeEc2Instance] : %v", err)
 	}
 	return &response, nil
 }
