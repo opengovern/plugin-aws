@@ -161,9 +161,13 @@ func (i EC2InstanceItem) EC2InstanceDevice() (*golang.ChartRow, map[string]*gola
 	properties.Properties = append(properties.Properties, enaProperty)
 
 	if i.Image != nil && i.Image.EnaSupport != nil {
+		enaSupported := "No"
+		if *i.Image.EnaSupport {
+			enaSupported = "Yes"
+		}
 		properties.Properties = append(properties.Properties, &golang.Property{
 			Key:     "  ENASupportedByAMI",
-			Current: fmt.Sprintf("%v", *i.Image.EnaSupport),
+			Current: enaSupported,
 		})
 	}
 
@@ -283,6 +287,8 @@ func (i EC2InstanceItem) EBSVolumeDevice(v types.Volume, vs kaytu.EBSVolumeRecom
 	properties.Properties = append(properties.Properties, throughputProp)
 	properties.Properties = append(properties.Properties, baselineThroughputProp)
 	properties.Properties = append(properties.Properties, provisionedThroughputProp)
+	properties.Properties = append(properties.Properties, volumeTypeModification)
+	properties.Properties = append(properties.Properties, volumeSizeModification)
 	props[*v.VolumeId] = properties
 
 	return &row, props
