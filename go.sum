@@ -138,6 +138,10 @@ github.com/kaytu-io/kaytu v0.14.2-rc.2.0.20240623141055-86161687e481 h1:xTiMqmln
 github.com/kaytu-io/kaytu v0.14.2-rc.2.0.20240623141055-86161687e481/go.mod h1:csDLaCgTnp/D9SZuo55KjOzp/BYfkhkeSkGuEiCljtc=
 github.com/kaytu-io/kaytu v0.14.2-rc.2.0.20240623143825-66093993ecff h1:J4E9E7YBGk12VZahohGmiMToUAzjRs7UnHmurNsMw00=
 github.com/kaytu-io/kaytu v0.14.2-rc.2.0.20240623143825-66093993ecff/go.mod h1:csDLaCgTnp/D9SZuo55KjOzp/BYfkhkeSkGuEiCljtc=
+github.com/kaytu-io/kaytu v0.14.2-rc.2.0.20240623173031-c0db092749e3 h1:gLvNyzyVuFernnHni1gtO2gV+ffefZLli4Y9BZpzj+o=
+github.com/kaytu-io/kaytu v0.14.2-rc.2.0.20240623173031-c0db092749e3/go.mod h1:csDLaCgTnp/D9SZuo55KjOzp/BYfkhkeSkGuEiCljtc=
+github.com/kaytu-io/kaytu v0.14.2-rc.2.0.20240623175355-3f14c8c8b06e h1:U6jUdOMW0h30SvkiZcKrQqiwzomPb0Zz57N/cNg5heU=
+github.com/kaytu-io/kaytu v0.14.2-rc.2.0.20240623175355-3f14c8c8b06e/go.mod h1:csDLaCgTnp/D9SZuo55KjOzp/BYfkhkeSkGuEiCljtc=
 github.com/kevinburke/ssh_config v1.2.0 h1:x584FjTGwHzMwvHx18PXxbBVzfnxogHaAReU4gf13a4=
 github.com/kevinburke/ssh_config v1.2.0/go.mod h1:CT57kijsi8u/K/BOFA39wgDQJ9CxiF4nAY/ojJ6r6mM=
 github.com/kr/pretty v0.1.0/go.mod h1:dAy3ld7l9f0ibDNOQOHHMYYIIbhfbHSm3C4ZsoJORNo=
