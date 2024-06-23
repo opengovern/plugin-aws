@@ -251,6 +251,21 @@ func (i EC2InstanceItem) EBSVolumeDevice(v types.Volume, vs kaytu.EBSVolumeRecom
 		provisionedThroughputProp.Recommended = utils.PNetworkThroughputMbps(vs.Recommended.ProvisionedThroughput)
 	}
 
+	volumeTypeModification := &golang.Property{
+		Key:         "Volume Type Modification",
+		Recommended: "No",
+	}
+	if storageTierProp.Current != storageTierProp.Recommended {
+		volumeTypeModification.Recommended = "Yes"
+	}
+	volumeSizeModification := &golang.Property{
+		Key:         "Volume Size Modification",
+		Recommended: "No",
+	}
+	if volumeSizeProp.Current != volumeSizeProp.Recommended {
+		volumeSizeModification.Recommended = "Yes"
+	}
+
 	properties.Properties = append(properties.Properties, storageTierProp)
 	properties.Properties = append(properties.Properties, volumeSizeProp)
 	properties.Properties = append(properties.Properties, iopsProp)
