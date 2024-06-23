@@ -31,7 +31,7 @@ func GetConfig(ctx context.Context, awsAccessKey, awsSecretKey, awsSessionToken,
 
 	if assumeRoleArn != "" {
 		cfg, err = config.LoadDefaultConfig(
-			context.Background(),
+			ctx,
 			config.WithCredentialsProvider(
 				stscreds.NewAssumeRoleProvider(
 					sts.NewFromConfig(cfg),

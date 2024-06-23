@@ -19,7 +19,7 @@ func (j *ListAllRegionsJob) Description() string {
 	return "Listing all available regions (RDS Cluster)"
 }
 func (j *ListAllRegionsJob) Run(ctx context.Context) error {
-	regions, err := j.processor.provider.ListAllRegions()
+	regions, err := j.processor.provider.ListAllRegions(ctx)
 	if err != nil {
 		return err
 	}

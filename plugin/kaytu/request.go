@@ -2,6 +2,7 @@ package kaytu
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -11,13 +12,12 @@ import (
 
 var ErrLogin = errors.New("your session is expired, please login")
 
-func Ec2InstanceWastageRequest(reqBody EC2InstanceWastageRequest, token string) (*EC2InstanceWastageResponse, error) {
+func Ec2InstanceWastageRequest(ctx context.Context, reqBody EC2InstanceWastageRequest, token string) (*EC2InstanceWastageResponse, error) {
 	payloadEncoded, err := json.Marshal(reqBody)
 	if err != nil {
 		return nil, err
 	}
-	req, err := http.NewRequest("POST", "https://api.kaytu.io/kaytu/wastage/api/v1/wastage/ec2-instance", bytes.NewBuffer(payloadEncoded))
-	//req, err := http.NewRequest("POST", "http://localhost:8000/api/v1/wastage/ec2-instance", bytes.NewBuffer(payloadEncoded))
+	req, err := http.NewRequestWithContext(ctx, "POST", "https://api.kaytu.io/kaytu/wastage/api/v1/wastage/ec2-instance", bytes.NewBuffer(payloadEncoded))
 	if err != nil {
 		return nil, fmt.Errorf("[ec2-instance]: %v", err)
 	}
@@ -55,12 +55,12 @@ func Ec2InstanceWastageRequest(reqBody EC2InstanceWastageRequest, token string) 
 	return &response, nil
 }
 
-func RDSInstanceWastageRequest(reqBody AwsRdsWastageRequest, token string) (*AwsRdsWastageResponse, error) {
+func RDSInstanceWastageRequest(ctx context.Context, reqBody AwsRdsWastageRequest, token string) (*AwsRdsWastageResponse, error) {
 	payloadEncoded, err := json.Marshal(reqBody)
 	if err != nil {
 		return nil, err
 	}
-	req, err := http.NewRequest("POST", "https://api.kaytu.io/kaytu/wastage/api/v1/wastage/aws-rds", bytes.NewBuffer(payloadEncoded))
+	req, err := http.NewRequestWithContext(ctx, "POST", "https://api.kaytu.io/kaytu/wastage/api/v1/wastage/aws-rds", bytes.NewBuffer(payloadEncoded))
 	if err != nil {
 		return nil, fmt.Errorf("[rds-instance]: %v", err)
 	}
@@ -98,12 +98,12 @@ func RDSInstanceWastageRequest(reqBody AwsRdsWastageRequest, token string) (*Aws
 	return &response, nil
 }
 
-func RDSClusterWastageRequest(reqBody AwsClusterWastageRequest, token string) (*AwsClusterWastageResponse, error) {
+func RDSClusterWastageRequest(ctx context.Context, reqBody AwsClusterWastageRequest, token string) (*AwsClusterWastageResponse, error) {
 	payloadEncoded, err := json.Marshal(reqBody)
 	if err != nil {
 		return nil, err
 	}
-	req, err := http.NewRequest("POST", "https://api.kaytu.io/kaytu/wastage/api/v1/wastage/aws-rds-cluster", bytes.NewBuffer(payloadEncoded))
+	req, err := http.NewRequestWithContext(ctx, "POST", "https://api.kaytu.io/kaytu/wastage/api/v1/wastage/aws-rds-cluster", bytes.NewBuffer(payloadEncoded))
 	if err != nil {
 		return nil, fmt.Errorf("[rds-cluster]: %v", err)
 	}
@@ -141,8 +141,8 @@ func RDSClusterWastageRequest(reqBody AwsClusterWastageRequest, token string) (*
 	return &response, nil
 }
 
-func ConfigurationRequest() (*Configuration, error) {
-	req, err := http.NewRequest("POST", "https://api.kaytu.io/kaytu/wastage/api/v1/wastage/configuration", nil)
+func ConfigurationRequest(ctx context.Context) (*Configuration, error) {
+	req, err := http.NewRequestWithContext(ctx, "POST", "https://api.kaytu.io/kaytu/wastage/api/v1/wastage/configuration", nil)
 	if err != nil {
 		return nil, fmt.Errorf("[ConfigurationRequest]: %v", err)
 	}
@@ -151,7 +151,6 @@ func ConfigurationRequest() (*Configuration, error) {
 	if err != nil {
 		return nil, fmt.Errorf("[ConfigurationRequest]: %v", err)
 	}
-
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		return nil, fmt.Errorf("[ConfigurationRequest]: %v", err)

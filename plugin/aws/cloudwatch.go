@@ -17,6 +17,7 @@ func NewCloudWatch(cfg aws.Config) (*CloudWatch, error) {
 }
 
 func (cw *CloudWatch) GetMetrics(
+	ctx context.Context,
 	region string,
 	namespace string,
 	metricNames []string,
@@ -33,7 +34,6 @@ func (cw *CloudWatch) GetMetrics(
 
 	metrics := map[string][]types2.Datapoint{}
 
-	ctx := context.Background()
 	cloudwatchClient := cloudwatch.NewFromConfig(localCfg)
 	var dimensionFilters []types2.DimensionFilter
 	for k, v := range filters {
@@ -76,6 +76,7 @@ func (cw *CloudWatch) GetMetrics(
 }
 
 func (cw *CloudWatch) GetDayByDayMetrics(
+	ctx context.Context,
 	region string,
 	namespace string,
 	metricNames []string,
@@ -89,7 +90,7 @@ func (cw *CloudWatch) GetDayByDayMetrics(
 	for i := 1; i <= days; i++ {
 		startTime := time.Now().Add(-time.Duration(24*i) * time.Hour)
 		endTime := time.Now().Add(-time.Duration(24*(i-1)) * time.Hour)
-		metrics, err := cw.GetMetrics(region, namespace, metricNames, filters, startTime, endTime, interval, statistics, extendedStatistics)
+		metrics, err := cw.GetMetrics(ctx, region, namespace, metricNames, filters, startTime, endTime, interval, statistics, extendedStatistics)
 		if err != nil {
 			return nil, err
 		}

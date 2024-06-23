@@ -31,7 +31,7 @@ func (j *ListEC2InstancesInRegionJob) Description() string {
 	return fmt.Sprintf("Listing all EC2 Instances in %s", j.region)
 }
 func (j *ListEC2InstancesInRegionJob) Run(ctx context.Context) error {
-	instances, err := j.processor.provider.ListInstances(j.region)
+	instances, err := j.processor.provider.ListInstances(ctx, j.region)
 	if err != nil {
 		return err
 	}
@@ -101,7 +101,7 @@ func (j *ListEC2InstancesInRegionJob) Run(ctx context.Context) error {
 				platform = *oi.Instance.PlatformDetails
 			}
 			reqID := uuid.New().String()
-			_, err := kaytu2.Ec2InstanceWastageRequest(kaytu2.EC2InstanceWastageRequest{
+			_, err := kaytu2.Ec2InstanceWastageRequest(ctx, kaytu2.EC2InstanceWastageRequest{
 				RequestId:      &reqID,
 				CliVersion:     &version.VERSION,
 				Identification: j.processor.identification,

@@ -45,7 +45,7 @@ func (j *GetEC2InstanceMetricsJob) Run(ctx context.Context) error {
 		return nil
 	}
 
-	volumes, err := j.processor.provider.ListAttachedVolumes(j.region, j.instance)
+	volumes, err := j.processor.provider.ListAttachedVolumes(ctx, j.region, j.instance)
 	if err != nil {
 		return err
 	}
@@ -53,6 +53,7 @@ func (j *GetEC2InstanceMetricsJob) Run(ctx context.Context) error {
 	instanceMetrics := map[string][]types2.Datapoint{}
 
 	cwMetrics, err := j.processor.metricProvider.GetDayByDayMetrics(
+		ctx,
 		j.region,
 		"AWS/EC2",
 		[]string{
@@ -80,6 +81,7 @@ func (j *GetEC2InstanceMetricsJob) Run(ctx context.Context) error {
 	}
 
 	cwPerSecondMetrics, err := j.processor.metricProvider.GetDayByDayMetrics(
+		ctx,
 		j.region,
 		"AWS/EC2",
 		[]string{
@@ -105,6 +107,7 @@ func (j *GetEC2InstanceMetricsJob) Run(ctx context.Context) error {
 	}
 
 	cwaMetrics, err := j.processor.metricProvider.GetDayByDayMetrics(
+		ctx,
 		j.region,
 		"CWAgent",
 		[]string{
@@ -138,6 +141,7 @@ func (j *GetEC2InstanceMetricsJob) Run(ctx context.Context) error {
 	volumeMetrics := map[string]map[string][]types2.Datapoint{}
 	for _, v := range volumeIDs {
 		volumeMetricsMap, err := j.processor.metricProvider.GetDayByDayMetrics(
+			ctx,
 			j.region,
 			"AWS/EBS",
 			[]string{
@@ -164,6 +168,7 @@ func (j *GetEC2InstanceMetricsJob) Run(ctx context.Context) error {
 		}
 
 		volumeIops, err := j.processor.metricProvider.GetDayByDayMetrics(
+			ctx,
 			j.region,
 			"AWS/EBS",
 			[]string{

@@ -86,7 +86,7 @@ func (j *OptimizeRDSClusterJob) Run(ctx context.Context) error {
 		Preferences: preferences.Export(j.item.Preferences),
 		Loading:     false,
 	}
-	res, err := kaytu.RDSClusterWastageRequest(req, j.processor.kaytuAcccessToken)
+	res, err := kaytu.RDSClusterWastageRequest(ctx, req, j.processor.kaytuAcccessToken)
 	if err != nil {
 		return err
 	}

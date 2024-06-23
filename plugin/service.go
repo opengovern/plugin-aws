@@ -161,7 +161,7 @@ func (p *AWSPlugin) SetStream(_ context.Context, stream *sdk.StreamController) {
 
 func (p *AWSPlugin) StartProcess(ctx context.Context, command string, flags map[string]string, kaytuAccessToken string, jobQueue *sdk.JobQueue) error {
 	profile := flags["profile"]
-	cfg, err := awsConfig.GetConfig(context.Background(), "", "", "", "", &profile, nil)
+	cfg, err := awsConfig.GetConfig(ctx, "", "", "", "", &profile, nil)
 	if err != nil {
 		return err
 	}
@@ -176,12 +176,12 @@ func (p *AWSPlugin) StartProcess(ctx context.Context, command string, flags map[
 		return err
 	}
 
-	identification, err := awsPrv.Identify()
+	identification, err := awsPrv.Identify(ctx)
 	if err != nil {
 		return err
 	}
 
-	configurations, err := kaytu.ConfigurationRequest()
+	configurations, err := kaytu.ConfigurationRequest(ctx)
 	if err != nil {
 		return err
 	}
@@ -255,7 +255,6 @@ func (p *AWSPlugin) StartProcess(ctx context.Context, command string, flags map[
 		return fmt.Errorf("invalid command: %s", command)
 	}
 	jobQueue.SetOnFinish(func(ctx context.Context) {
-		fmt.Println("HERE!1")
 		publishNonInteractiveExport := func(ex *golang.NonInteractiveExport) {
 			p.stream.Send(&golang.PluginMessage{
 				PluginMessage: &golang.PluginMessage_NonInteractive{

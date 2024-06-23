@@ -75,7 +75,7 @@ func (j *OptimizeRDSInstanceJob) Run(ctx context.Context) error {
 		floatThroughput := float64(*j.item.Instance.StorageThroughput)
 		req.Instance.StorageThroughput = &floatThroughput
 	}
-	res, err := kaytu.RDSInstanceWastageRequest(req, j.processor.kaytuAcccessToken)
+	res, err := kaytu.RDSInstanceWastageRequest(ctx, req, j.processor.kaytuAcccessToken)
 	if err != nil {
 		return err
 	}

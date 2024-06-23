@@ -32,13 +32,13 @@ func (j *ListRDSClustersInRegionJob) Description() string {
 	return fmt.Sprintf("Listing all RDS Clusters in %s", j.region)
 }
 func (j *ListRDSClustersInRegionJob) Run(ctx context.Context) error {
-	clusters, err := j.processor.provider.ListRDSClusters(j.region)
+	clusters, err := j.processor.provider.ListRDSClusters(ctx, j.region)
 	if err != nil {
 		return err
 	}
 
 	for _, cluster := range clusters {
-		instances, err := j.processor.provider.ListRDSInstanceByCluster(j.region, *cluster.DBClusterIdentifier)
+		instances, err := j.processor.provider.ListRDSInstanceByCluster(ctx, j.region, *cluster.DBClusterIdentifier)
 		if err != nil {
 			return err
 		}
@@ -119,7 +119,7 @@ func (j *ListRDSClustersInRegionJob) Run(ctx context.Context) error {
 				Preferences: preferences.Export(oi.Preferences),
 				Loading:     true,
 			}
-			_, err := kaytu.RDSClusterWastageRequest(req, j.processor.kaytuAcccessToken)
+			_, err := kaytu.RDSClusterWastageRequest(ctx, req, j.processor.kaytuAcccessToken)
 			if err != nil {
 				return err
 			}
