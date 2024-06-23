@@ -39,7 +39,7 @@ func (j *ListEC2InstancesInRegionJob) Run(ctx context.Context) error {
 
 	for _, instance := range instances {
 		var img *types2.Image
-		if instance.ImageId == nil {
+		if instance.ImageId != nil {
 			image, err := j.processor.provider.GetImage(ctx, j.region, *instance.ImageId)
 			if err != nil {
 				return err
