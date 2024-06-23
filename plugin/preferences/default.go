@@ -35,7 +35,7 @@ var DefaultEC2Preferences = []*golang.PreferenceItem{
 	{Service: "EBSVolume", Key: "VolumeType", PossibleValues: []string{"", "standard", "io1", "io2", "gp2", "gp3", "sc1", "st1"}},
 	{Service: "EBSVolume", Key: "IOPSBreathingRoom", IsNumber: true, Value: wrapperspb.String("10"), PreventPinning: true, Unit: "%"},
 	{Service: "EBSVolume", Key: "ThroughputBreathingRoom", IsNumber: true, Value: wrapperspb.String("5"), PreventPinning: true, Unit: "%"},
-	{Service: "EBSVolume", Key: "ExcludeVolumeType", Value: wrapperspb.String("off"), PossibleValues: []string{"off", "standard", "io1", "io2", "gp2", "gp3", "sc1", "st1"}, PreventPinning: true},
+	{Service: "EBSVolume", Key: "ExcludeVolumeTypes", Value: wrapperspb.String(""), PreventPinning: true},
 	//{Service: "EBSVolume", Key: "ExcludeUpsizingFeature", Value: wrapperspb.String("Yes"), PreventPinning: true, PossibleValues: []string{"No", "Yes"}},
 }
 
@@ -58,4 +58,5 @@ var DefaultRDSPreferences = []*golang.PreferenceItem{
 	{Service: "RDSInstance", Key: "MemoryBreathingRoom", IsNumber: true, Value: wrapperspb.String("5"), PreventPinning: true, Unit: "%"},
 	{Service: "RDSInstance", Key: "CpuBreathingRoom", IsNumber: true, Value: wrapperspb.String("10"), PreventPinning: true, Unit: "%"},
 	{Service: "RDSInstance", Key: "ExcludeUpsizingFeature", Value: wrapperspb.String("Yes"), PreventPinning: true, PossibleValues: []string{"No", "Yes"}},
+	{Service: "RDSInstance", Key: "ExcludeRDSVolumeTypes", Value: wrapperspb.String(""), PreventPinning: true},
 }
