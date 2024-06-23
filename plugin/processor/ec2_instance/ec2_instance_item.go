@@ -161,9 +161,13 @@ func (i EC2InstanceItem) EC2InstanceDevice() (*golang.ChartRow, map[string]*gola
 	properties.Properties = append(properties.Properties, enaProperty)
 
 	if i.Image != nil && i.Image.EnaSupport != nil {
+		enaSupported := "No"
+		if *i.Image.EnaSupport {
+			enaSupported = "Yes"
+		}
 		properties.Properties = append(properties.Properties, &golang.Property{
 			Key:     "  ENASupportedByAMI",
-			Current: fmt.Sprintf("%v", *i.Image.EnaSupport),
+			Current: enaSupported,
 		})
 	}
 
