@@ -12,15 +12,17 @@ import (
 
 type GetEC2InstanceMetricsJob struct {
 	instance types.Instance
+	image    *types.Image
 	region   string
 
 	processor *Processor
 }
 
-func NewGetEC2InstanceMetricsJob(processor *Processor, region string, instance types.Instance) *GetEC2InstanceMetricsJob {
+func NewGetEC2InstanceMetricsJob(processor *Processor, region string, instance types.Instance, image *types.Image) *GetEC2InstanceMetricsJob {
 	return &GetEC2InstanceMetricsJob{
 		processor: processor,
 		instance:  instance,
+		image:     image,
 		region:    region,
 	}
 }
@@ -200,6 +202,7 @@ func (j *GetEC2InstanceMetricsJob) Run(ctx context.Context) error {
 
 	oi := EC2InstanceItem{
 		Instance:            j.instance,
+		Image:               j.image,
 		Volumes:             volumes,
 		Metrics:             instanceMetrics,
 		VolumeMetrics:       volumeMetrics,

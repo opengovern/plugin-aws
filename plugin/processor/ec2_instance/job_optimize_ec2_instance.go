@@ -31,7 +31,7 @@ func (j *OptimizeEC2InstanceJob) Description() string {
 }
 func (j *OptimizeEC2InstanceJob) Run(ctx context.Context) error {
 	if j.item.LazyLoadingEnabled {
-		j.processor.jobQueue.Push(NewGetEC2InstanceMetricsJob(j.processor, j.item.Region, j.item.Instance))
+		j.processor.jobQueue.Push(NewGetEC2InstanceMetricsJob(j.processor, j.item.Region, j.item.Instance, j.item.Image))
 		return nil
 	}
 
@@ -102,6 +102,7 @@ func (j *OptimizeEC2InstanceJob) Run(ctx context.Context) error {
 
 	j.item = EC2InstanceItem{
 		Instance:            j.item.Instance,
+		Image:               j.item.Image,
 		Region:              j.item.Region,
 		OptimizationLoading: false,
 		Preferences:         j.item.Preferences,

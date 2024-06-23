@@ -13,6 +13,7 @@ import (
 
 type EC2InstanceItem struct {
 	Instance            types.Instance
+	Image               *types.Image
 	Region              string
 	OptimizationLoading bool
 	Preferences         []*golang.PreferenceItem
@@ -118,7 +119,7 @@ func (i EC2InstanceItem) EC2InstanceDevice() (*golang.ChartRow, map[string]*gola
 		Max:     utils.PNetworkThroughputMbps(i.Wastage.RightSizing.NetworkThroughput.Max),
 	}
 	enaProperty := &golang.Property{
-		Key:     "  ENA Support",
+		Key:     "  ENASupportChangeInInstanceType",
 		Current: fmt.Sprintf("%s", i.Wastage.RightSizing.Current.ENASupported),
 	}
 
@@ -158,6 +159,14 @@ func (i EC2InstanceItem) EC2InstanceDevice() (*golang.ChartRow, map[string]*gola
 	})
 	properties.Properties = append(properties.Properties, netThroughputProperty)
 	properties.Properties = append(properties.Properties, enaProperty)
+
+	if i.Image != nil && i.Image.EnaSupport != nil {
+		properties.Properties = append(properties.Properties, &golang.Property{
+			Key:     "  ENASupportedByAMI",
+			Current: fmt.Sprintf("%v", *i.Image.EnaSupport),
+		})
+	}
+
 	props[*i.Instance.InstanceId] = properties
 
 	return &row, props
