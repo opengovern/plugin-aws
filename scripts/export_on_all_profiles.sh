@@ -20,7 +20,7 @@ do
   fi
 
   echo "Running Kaytu for profile: $PROFILE"
-  kaytu $@ --output csv > .temp-kaytu.csv
+  kaytu $@ --profile $PROFILE --output csv > .temp-kaytu.csv
   mv .temp-kaytu.csv $PROFILE.csv
   echo "Kaytu finished optimizations for profile: $PROFILE"
 done
