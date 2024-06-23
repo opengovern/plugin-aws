@@ -1,5 +1,6 @@
 #!/bin/bash
 set -e
+set -x
 
 # Check if the first argument is --continue
 if [ "$1" == "--continue" ]; then
