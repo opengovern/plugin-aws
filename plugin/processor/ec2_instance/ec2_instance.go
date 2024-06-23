@@ -136,6 +136,16 @@ func (m *Processor) exportCsv() []*golang.CSVRow {
 			additionalDetails = append(additionalDetails,
 				fmt.Sprintf("EBS IOPS:: Current: %s - Avg: %s io/s - Recommended: %s", i.Wastage.RightSizing.Current.EBSIops,
 					utils.PFloat64ToString(i.Wastage.RightSizing.EBSIops.Avg), i.Wastage.RightSizing.Recommended.EBSIops))
+
+			enaSupportChange := i.Wastage.RightSizing.Current.ENASupported != i.Wastage.RightSizing.Recommended.ENASupported
+			additionalDetails = append(additionalDetails,
+				fmt.Sprintf("ENASupportChangeInInstanceType:: %v", enaSupportChange))
+
+			if i.Image != nil && i.Image.EnaSupport != nil {
+				additionalDetails = append(additionalDetails,
+					fmt.Sprintf("ENASupportedByAMI:: %v", *i.Image.EnaSupport))
+			}
+
 		}
 		row := []string{m.identification["account"], i.Region, "EC2 Instance", *i.Instance.InstanceId, name, platform,
 			"730 hours", utils.FormatPriceFloat(i.Wastage.RightSizing.Current.Cost), rightSizingCost, saving,
@@ -187,6 +197,10 @@ func (m *Processor) exportCsv() []*golang.CSVRow {
 				ebsAdditionalDetails = append(ebsAdditionalDetails,
 					fmt.Sprintf("Provisioned Throughput:: Current: %s - Recommended: %s", PNetworkThroughputMBps(vs.Current.ProvisionedThroughput),
 						PNetworkThroughputMBps(vs.Recommended.ProvisionedThroughput)))
+				ebsAdditionalDetails = append(ebsAdditionalDetails,
+					fmt.Sprintf("VolumeTypeChange:: %v", vs.Current.Tier != vs.Recommended.Tier))
+				ebsAdditionalDetails = append(ebsAdditionalDetails,
+					fmt.Sprintf("VolumeSizeChange:: %v", *vs.Current.VolumeSize != *vs.Recommended.VolumeSize))
 			}
 
 			vRow := []string{m.identification["account"], i.Region, "EBS Volume", *v.VolumeId, vName, "N/A",
