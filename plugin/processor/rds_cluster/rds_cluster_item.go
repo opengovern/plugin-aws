@@ -219,6 +219,23 @@ func (c RDSClusterItem) RDSInstanceDevice() ([]*golang.ChartRow, map[string]*gol
 		storageProps.Properties = append(storageProps.Properties, storageIOPSProperty)
 		storageProps.Properties = append(storageProps.Properties, storageThroughputProperty)
 
+		volumeTypeModification := &golang.Property{
+			Key:         "Volume Type Modification",
+			Recommended: "No",
+		}
+		if storageTypeProperty.Current != storageTypeProperty.Recommended {
+			volumeTypeModification.Recommended = "Yes"
+		}
+		volumeSizeModification := &golang.Property{
+			Key:         "Volume Size Modification",
+			Recommended: "No",
+		}
+		if storageSizeProperty.Current != storageSizeProperty.Recommended {
+			volumeSizeModification.Recommended = "Yes"
+		}
+		storageProps.Properties = append(storageProps.Properties, volumeTypeModification)
+		storageProps.Properties = append(storageProps.Properties, volumeSizeModification)
+
 		deviceProps[fmt.Sprintf("%s-compute", *i.DBInstanceIdentifier)] = computeProps
 		deviceProps[fmt.Sprintf("%s-storage", *i.DBInstanceIdentifier)] = storageProps
 		deviceRows = append(deviceRows, &computeRow, &storageRow)
