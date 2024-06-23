@@ -287,6 +287,8 @@ func (i EC2InstanceItem) EBSVolumeDevice(v types.Volume, vs kaytu.EBSVolumeRecom
 	properties.Properties = append(properties.Properties, throughputProp)
 	properties.Properties = append(properties.Properties, baselineThroughputProp)
 	properties.Properties = append(properties.Properties, provisionedThroughputProp)
+	properties.Properties = append(properties.Properties, volumeTypeModification)
+	properties.Properties = append(properties.Properties, volumeSizeModification)
 	props[*v.VolumeId] = properties
 
 	return &row, props
