@@ -137,6 +137,10 @@ func (m *Processor) ExportCsv() []*golang.CSVRow {
 			storageAdditionalDetails = append(storageAdditionalDetails,
 				fmt.Sprintf("Throughput:: Current: %s - Avg: %s - Recommended: %s", utils.PStorageThroughputMbps(i.Wastage.RightSizing.Current.StorageThroughput),
 					utils.PStorageThroughputMbps(i.Wastage.RightSizing.StorageThroughput.Avg), utils.PStorageThroughputMbps(i.Wastage.RightSizing.Recommended.StorageThroughput)))
+			storageAdditionalDetails = append(storageAdditionalDetails,
+				fmt.Sprintf("VolumeTypeChange:: %v", utils.PString(i.Wastage.RightSizing.Current.StorageType) != utils.PString(i.Wastage.RightSizing.Recommended.StorageType)))
+			storageAdditionalDetails = append(storageAdditionalDetails,
+				fmt.Sprintf("VolumeSizeChange:: %v", *i.Wastage.RightSizing.Current.StorageSize != *i.Wastage.RightSizing.Current.StorageSize))
 		}
 		storageRow := []string{m.identification["account"], i.Region, "RDS Instance Storage", fmt.Sprintf("%s-storage", *i.Instance.DBInstanceIdentifier),
 			*i.Instance.DBInstanceIdentifier, "N/A", "730 hours", utils.FormatPriceFloat(i.Wastage.RightSizing.Current.StorageCost),

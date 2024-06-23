@@ -218,6 +218,23 @@ func (i RDSInstanceItem) RDSInstanceDevice() ([]*golang.ChartRow, map[string]*go
 	storageProps.Properties = append(storageProps.Properties, storageThroughputProperty)
 	storageProps.Properties = append(storageProps.Properties, runtimeProperty)
 
+	volumeTypeModification := &golang.Property{
+		Key:         "Volume Type Modification",
+		Recommended: "No",
+	}
+	if storageTypeProperty.Current != storageTypeProperty.Recommended {
+		volumeTypeModification.Recommended = "Yes"
+	}
+	volumeSizeModification := &golang.Property{
+		Key:         "Volume Size Modification",
+		Recommended: "No",
+	}
+	if storageSizeProperty.Current != storageSizeProperty.Recommended {
+		volumeSizeModification.Recommended = "Yes"
+	}
+	storageProps.Properties = append(storageProps.Properties, volumeTypeModification)
+	storageProps.Properties = append(storageProps.Properties, volumeSizeModification)
+
 	props[computeRow.RowId] = computeProps
 	props[storageRow.RowId] = storageProps
 
