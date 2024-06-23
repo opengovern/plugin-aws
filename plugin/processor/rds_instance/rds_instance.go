@@ -27,22 +27,11 @@ type Processor struct {
 	lazyloadCounter         *atomic.Uint32
 	observabilityDays       int
 
-	summary *util.ConcurrentMap[string, ec2_instance.EC2InstanceSummary]
+	summary            *util.ConcurrentMap[string, ec2_instance.EC2InstanceSummary]
+	defaultPreferences []*golang.PreferenceItem
 }
 
-func NewProcessor(
-	provider *aws.AWS,
-	metricProvider *aws.CloudWatch,
-	identification map[string]string,
-	publishOptimizationItem func(item *golang.ChartOptimizationItem),
-	publishResultSummary func(summary *golang.ResultSummary),
-	kaytuAcccessToken string,
-	jobQueue *sdk.JobQueue,
-	configurations *kaytu.Configuration,
-	lazyloadCounter *atomic.Uint32,
-	observabilityDays int,
-	summary *util.ConcurrentMap[string, ec2_instance.EC2InstanceSummary],
-) *Processor {
+func NewProcessor(provider *aws.AWS, metricProvider *aws.CloudWatch, identification map[string]string, publishOptimizationItem func(item *golang.ChartOptimizationItem), publishResultSummary func(summary *golang.ResultSummary), kaytuAcccessToken string, jobQueue *sdk.JobQueue, configurations *kaytu.Configuration, lazyloadCounter *atomic.Uint32, observabilityDays int, summary *util.ConcurrentMap[string, ec2_instance.EC2InstanceSummary], preferences []*golang.PreferenceItem) *Processor {
 	r := &Processor{
 		provider:                provider,
 		metricProvider:          metricProvider,
@@ -56,6 +45,7 @@ func NewProcessor(
 		lazyloadCounter:         lazyloadCounter,
 		observabilityDays:       observabilityDays,
 		summary:                 summary,
+		defaultPreferences:      preferences,
 	}
 
 	jobQueue.Push(NewListAllRegionsJob(r))

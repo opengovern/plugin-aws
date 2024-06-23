@@ -27,6 +27,7 @@ type Processor struct {
 	configuration           *kaytu2.Configuration
 	lazyloadCounter         atomic.Uint32
 	observabilityDays       int
+	defaultPreferences      []*golang.PreferenceItem
 
 	summary util.ConcurrentMap[string, EC2InstanceSummary]
 }
@@ -41,6 +42,7 @@ func NewProcessor(
 	jobQueue *sdk.JobQueue,
 	configurations *kaytu2.Configuration,
 	observabilityDays int,
+	defaultPreferences []*golang.PreferenceItem,
 ) *Processor {
 	r := &Processor{
 		provider:                prv,
@@ -53,6 +55,7 @@ func NewProcessor(
 		jobQueue:                jobQueue,
 		configuration:           configurations,
 		observabilityDays:       observabilityDays,
+		defaultPreferences:      defaultPreferences,
 
 		lazyloadCounter: atomic.Uint32{},
 

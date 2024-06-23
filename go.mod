@@ -12,7 +12,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/rds v1.78.0
 	github.com/aws/aws-sdk-go-v2/service/sts v1.28.6
 	github.com/google/uuid v1.6.0
-	github.com/kaytu-io/kaytu v0.0.0-20240620103314-e55c50b9f802
+	github.com/kaytu-io/kaytu v0.14.2-rc.2.0.20240623143825-66093993ecff
 	github.com/stretchr/testify v1.9.0
 	golang.org/x/net v0.26.0
 	google.golang.org/protobuf v1.34.2

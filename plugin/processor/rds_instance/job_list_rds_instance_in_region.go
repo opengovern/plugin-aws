@@ -8,7 +8,6 @@ import (
 	"github.com/kaytu-io/kaytu/pkg/utils"
 	"github.com/kaytu-io/kaytu/preferences"
 	"github.com/kaytu-io/plugin-aws/plugin/kaytu"
-	preferences2 "github.com/kaytu-io/plugin-aws/plugin/preferences"
 	"github.com/kaytu-io/plugin-aws/plugin/version"
 	"strings"
 )
@@ -47,7 +46,7 @@ func (j *ListRDSInstancesInRegionJob) Run(ctx context.Context) error {
 			Region:              j.region,
 			OptimizationLoading: true,
 			LazyLoadingEnabled:  false,
-			Preferences:         preferences2.DefaultRDSPreferences,
+			Preferences:         j.processor.defaultPreferences,
 		}
 
 		if strings.Contains(strings.ToLower(*instance.Engine), "docdb") {

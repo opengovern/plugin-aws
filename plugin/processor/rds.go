@@ -17,12 +17,12 @@ type RDSProcessor struct {
 	rdsClusterProcessor  *rds_cluster.Processor
 }
 
-func NewRDSProcessor(provider *aws.AWS, metricProvider *aws.CloudWatch, identification map[string]string, publishOptimizationItem func(item *golang.ChartOptimizationItem), publishResultSummary func(summary *golang.ResultSummary), kaytuAcccessToken string, jobQueue *sdk.JobQueue, configurations *kaytu.Configuration, observabilityDays int) *RDSProcessor {
+func NewRDSProcessor(provider *aws.AWS, metricProvider *aws.CloudWatch, identification map[string]string, publishOptimizationItem func(item *golang.ChartOptimizationItem), publishResultSummary func(summary *golang.ResultSummary), kaytuAcccessToken string, jobQueue *sdk.JobQueue, configurations *kaytu.Configuration, observabilityDays int, preferences []*golang.PreferenceItem) *RDSProcessor {
 	lazyloadCounter := atomic.Uint32{}
 	summary := util.NewMap[string, ec2_instance.EC2InstanceSummary]()
 	return &RDSProcessor{
-		rdsInstanceProcessor: rds_instance.NewProcessor(provider, metricProvider, identification, publishOptimizationItem, publishResultSummary, kaytuAcccessToken, jobQueue, configurations, &lazyloadCounter, observabilityDays, &summary),
-		rdsClusterProcessor:  rds_cluster.NewProcessor(provider, metricProvider, identification, publishOptimizationItem, publishResultSummary, kaytuAcccessToken, jobQueue, configurations, &lazyloadCounter, observabilityDays, &summary),
+		rdsInstanceProcessor: rds_instance.NewProcessor(provider, metricProvider, identification, publishOptimizationItem, publishResultSummary, kaytuAcccessToken, jobQueue, configurations, &lazyloadCounter, observabilityDays, &summary, preferences),
+		rdsClusterProcessor:  rds_cluster.NewProcessor(provider, metricProvider, identification, publishOptimizationItem, publishResultSummary, kaytuAcccessToken, jobQueue, configurations, &lazyloadCounter, observabilityDays, &summary, preferences),
 	}
 }
 

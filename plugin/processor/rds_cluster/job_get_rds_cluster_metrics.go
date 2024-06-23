@@ -6,7 +6,6 @@ import (
 	types2 "github.com/aws/aws-sdk-go-v2/service/cloudwatch/types"
 	"github.com/aws/aws-sdk-go-v2/service/rds/types"
 	"github.com/kaytu-io/kaytu/pkg/utils"
-	preferences2 "github.com/kaytu-io/plugin-aws/plugin/preferences"
 	"strings"
 	"time"
 )
@@ -243,7 +242,7 @@ func (j *GetRDSClusterMetricsJob) Run(ctx context.Context) error {
 		Instances:           j.instances,
 		Region:              j.region,
 		OptimizationLoading: true,
-		Preferences:         preferences2.DefaultRDSPreferences,
+		Preferences:         j.processor.defaultPreferences,
 		Skipped:             false,
 		LazyLoadingEnabled:  false,
 		SkipReason:          "",
