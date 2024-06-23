@@ -79,6 +79,24 @@ func (s *AWS) ListInstances(ctx context.Context, region string) ([]types.Instanc
 	return vms, nil
 }
 
+func (s *AWS) GetImage(ctx context.Context, region, imageId string) (*types.Image, error) {
+	localCfg := s.cfg
+	localCfg.Region = region
+
+	client := ec2.NewFromConfig(localCfg)
+	out, err := client.DescribeImages(ctx, &ec2.DescribeImagesInput{
+		ImageIds: []string{imageId},
+	})
+	if err != nil {
+		return nil, err
+	}
+	for _, img := range out.Images {
+		return &img, nil
+	}
+	return nil, nil
+
+}
+
 func (s *AWS) ListAttachedVolumes(ctx context.Context, region string, instance types.Instance) ([]types.Volume, error) {
 	localCfg := s.cfg
 	localCfg.Region = region

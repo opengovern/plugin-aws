@@ -35,9 +35,22 @@ func (j *ListEC2InstancesInRegionJob) Run(ctx context.Context) error {
 		return err
 	}
 
+	images := map[string]*types2.Image{}
+
 	for _, instance := range instances {
+		var img *types2.Image
+		if instance.ImageId == nil {
+			image, err := j.processor.provider.GetImage(ctx, j.region, *instance.ImageId)
+			if err != nil {
+				return err
+			}
+			img = image
+		}
+		images[*instance.InstanceId] = img
+
 		oi := EC2InstanceItem{
 			Instance:            instance,
+			Image:               img,
 			Region:              j.region,
 			OptimizationLoading: true,
 			LazyLoadingEnabled:  false,
@@ -144,7 +157,7 @@ func (j *ListEC2InstancesInRegionJob) Run(ctx context.Context) error {
 		}
 
 		//TODO-Saleh since we're doing these one by one if user runs the lazy loading item it gets re-run here as well because lazy loading enabled is false now.
-		j.processor.jobQueue.Push(NewGetEC2InstanceMetricsJob(j.processor, j.region, instance))
+		j.processor.jobQueue.Push(NewGetEC2InstanceMetricsJob(j.processor, j.region, instance, images[*instance.InstanceId]))
 	}
 
 	return nil
