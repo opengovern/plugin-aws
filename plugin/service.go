@@ -159,7 +159,7 @@ func (p *AWSPlugin) SetStream(_ context.Context, stream *sdk.StreamController) {
 	p.stream = stream
 }
 
-func (p *AWSPlugin) StartProcess(ctx context.Context, command string, flags map[string]string, kaytuAccessToken string, jobQueue *sdk.JobQueue) error {
+func (p *AWSPlugin) StartProcess(ctx context.Context, command string, flags map[string]string, kaytuAccessToken string, preferences []*golang.PreferenceItem, jobQueue *sdk.JobQueue) error {
 	profile := flags["profile"]
 	cfg, err := awsConfig.GetConfig(ctx, "", "", "", "", &profile, nil)
 	if err != nil {
@@ -238,6 +238,7 @@ func (p *AWSPlugin) StartProcess(ctx context.Context, command string, flags map[
 			jobQueue,
 			configurations,
 			observabilityDays,
+			preferences,
 		)
 	} else if command == "rds-instance" {
 		p.processor = processor2.NewRDSProcessor(
@@ -250,6 +251,7 @@ func (p *AWSPlugin) StartProcess(ctx context.Context, command string, flags map[
 			jobQueue,
 			configurations,
 			observabilityDays,
+			preferences,
 		)
 	} else {
 		return fmt.Errorf("invalid command: %s", command)

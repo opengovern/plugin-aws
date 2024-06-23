@@ -5,7 +5,6 @@ import (
 	"fmt"
 	types2 "github.com/aws/aws-sdk-go-v2/service/cloudwatch/types"
 	"github.com/aws/aws-sdk-go-v2/service/rds/types"
-	preferences2 "github.com/kaytu-io/plugin-aws/plugin/preferences"
 	"strings"
 	"time"
 )
@@ -188,7 +187,7 @@ func (j *GetRDSInstanceMetricsJob) Run(ctx context.Context) error {
 		Region:              j.region,
 		OptimizationLoading: true,
 		LazyLoadingEnabled:  false,
-		Preferences:         preferences2.DefaultRDSPreferences,
+		Preferences:         j.processor.defaultPreferences,
 	}
 
 	j.processor.items.Set(*oi.Instance.DBInstanceIdentifier, oi)

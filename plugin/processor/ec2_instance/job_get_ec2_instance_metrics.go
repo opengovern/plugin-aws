@@ -7,7 +7,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/kaytu-io/kaytu/pkg/utils"
 	aws2 "github.com/kaytu-io/plugin-aws/plugin/aws"
-	preferences2 "github.com/kaytu-io/plugin-aws/plugin/preferences"
 	"time"
 )
 
@@ -207,7 +206,7 @@ func (j *GetEC2InstanceMetricsJob) Run(ctx context.Context) error {
 		Region:              j.region,
 		OptimizationLoading: true,
 		LazyLoadingEnabled:  false,
-		Preferences:         preferences2.DefaultEC2Preferences,
+		Preferences:         j.processor.defaultPreferences,
 	}
 	if j.instance.State.Name != types.InstanceStateNameRunning ||
 		j.instance.InstanceLifecycle == types.InstanceLifecycleTypeSpot ||
