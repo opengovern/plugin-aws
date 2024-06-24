@@ -8,6 +8,7 @@ import (
 	"github.com/kaytu-io/kaytu/pkg/utils"
 	"github.com/kaytu-io/plugin-aws/plugin/kaytu"
 	"google.golang.org/protobuf/types/known/wrapperspb"
+	"sort"
 	"strings"
 )
 
@@ -124,6 +125,22 @@ func (c RDSClusterItem) RDSInstanceDevice() ([]*golang.ChartRow, map[string]*gol
 			Average: utils.StorageUsagePercentageByFreeSpace(c.Wastage.RightSizing[hashedId].FreeStorageBytes.Avg, c.Wastage.RightSizing[hashedId].Current.StorageSize),
 			Max:     utils.StorageUsagePercentageByFreeSpace(c.Wastage.RightSizing[hashedId].FreeStorageBytes.Min, c.Wastage.RightSizing[hashedId].Current.StorageSize),
 		}
+
+		computeCostComponentPropertiesMap := make(map[string]*golang.Property)
+		for k, v := range c.Wastage.RightSizing[hashedId].Current.ComputeCostComponents {
+			computeCostComponentPropertiesMap[k] = &golang.Property{
+				Key:     fmt.Sprintf("  %s", k),
+				Current: fmt.Sprintf("$%.2f", v),
+			}
+		}
+		storageCostComponentPropertiesMap := make(map[string]*golang.Property)
+		for k, v := range c.Wastage.RightSizing[hashedId].Current.StorageCostComponents {
+			storageCostComponentPropertiesMap[k] = &golang.Property{
+				Key:     fmt.Sprintf("  %s", k),
+				Current: fmt.Sprintf("$%.2f", v),
+			}
+		}
+
 		if strings.Contains(strings.ToLower(c.Wastage.RightSizing[hashedId].Current.Engine), "aurora") {
 			avgPercentage := (*c.Wastage.RightSizing[hashedId].VolumeBytesUsed.Avg / (1024.0 * 1024.0 * 1024.0)) / float64(*c.Wastage.RightSizing[hashedId].Current.StorageSize) * 100
 			maxPercentage := (*c.Wastage.RightSizing[hashedId].VolumeBytesUsed.Max / (1024.0 * 1024.0 * 1024.0)) / float64(*c.Wastage.RightSizing[hashedId].Current.StorageSize) * 100
@@ -197,23 +214,47 @@ func (c RDSClusterItem) RDSInstanceDevice() ([]*golang.ChartRow, map[string]*gol
 				c.Wastage.RightSizing[hashedId].Recommended.StorageThroughput = &v
 			}
 			storageThroughputProperty.Recommended = utils.PStorageThroughputMbps(c.Wastage.RightSizing[hashedId].Recommended.StorageThroughput)
+
+			for k, v := range c.Wastage.RightSizing[hashedId].Recommended.ComputeCostComponents {
+				if _, ok := computeCostComponentPropertiesMap[k]; !ok {
+					computeCostComponentPropertiesMap[k] = &golang.Property{
+						Key: fmt.Sprintf("  %s", k),
+					}
+				}
+				computeCostComponentPropertiesMap[k].Recommended = fmt.Sprintf("$%.2f", v)
+			}
+			for k, v := range c.Wastage.RightSizing[hashedId].Recommended.StorageCostComponents {
+				if _, ok := storageCostComponentPropertiesMap[k]; !ok {
+					storageCostComponentPropertiesMap[k] = &golang.Property{
+						Key: fmt.Sprintf("  %s", k),
+					}
+				}
+				storageCostComponentPropertiesMap[k].Recommended = fmt.Sprintf("$%.2f", v)
+			}
 		}
 		computeProps.Properties = append(computeProps.Properties, regionProperty)
 		computeProps.Properties = append(computeProps.Properties, instanceSizeProperty)
 		computeProps.Properties = append(computeProps.Properties, engineProperty)
 		computeProps.Properties = append(computeProps.Properties, engineVerProperty)
 		computeProps.Properties = append(computeProps.Properties, clusterTypeProperty)
-		storageProps.Properties = append(storageProps.Properties, regionProperty)
-		//ec2InstanceStorage.Properties = append(ec2Instance.Properties, &golang.Property{
-		//	Key: "Compute",
-		//})
 		computeProps.Properties = append(computeProps.Properties, vCPUProperty)
 		computeProps.Properties = append(computeProps.Properties, memoryProperty)
 		computeProps.Properties = append(computeProps.Properties, processorProperty)
 		computeProps.Properties = append(computeProps.Properties, architectureProperty)
-		//ec2Instance.Properties = append(ec2Instance.Properties, &golang.Property{
-		//	Key: "Storage",
-		//})
+
+		computeCostComponentProperties := make([]*golang.Property, 0, len(computeCostComponentPropertiesMap))
+		for _, v := range computeCostComponentPropertiesMap {
+			computeCostComponentProperties = append(computeCostComponentProperties, v)
+		}
+		sort.Slice(computeCostComponentProperties, func(i, j int) bool {
+			return computeCostComponentProperties[i].Key < computeCostComponentProperties[j].Key
+		})
+		computeProps.Properties = append(computeProps.Properties, &golang.Property{
+			Key: "Cost Components",
+		})
+		computeProps.Properties = append(computeProps.Properties, computeCostComponentProperties...)
+
+		storageProps.Properties = append(storageProps.Properties, regionProperty)
 		storageProps.Properties = append(storageProps.Properties, storageTypeProperty)
 		storageProps.Properties = append(storageProps.Properties, storageSizeProperty)
 		storageProps.Properties = append(storageProps.Properties, storageIOPSProperty)
@@ -235,6 +276,18 @@ func (c RDSClusterItem) RDSInstanceDevice() ([]*golang.ChartRow, map[string]*gol
 		}
 		storageProps.Properties = append(storageProps.Properties, volumeTypeModification)
 		storageProps.Properties = append(storageProps.Properties, volumeSizeModification)
+
+		storageCostComponentProperties := make([]*golang.Property, 0, len(storageCostComponentPropertiesMap))
+		for _, v := range storageCostComponentPropertiesMap {
+			storageCostComponentProperties = append(storageCostComponentProperties, v)
+		}
+		sort.Slice(storageCostComponentProperties, func(i, j int) bool {
+			return storageCostComponentProperties[i].Key < storageCostComponentProperties[j].Key
+		})
+		storageProps.Properties = append(storageProps.Properties, &golang.Property{
+			Key: "Cost Components",
+		})
+		storageProps.Properties = append(storageProps.Properties, storageCostComponentProperties...)
 
 		deviceProps[fmt.Sprintf("%s-compute", *i.DBInstanceIdentifier)] = computeProps
 		deviceProps[fmt.Sprintf("%s-storage", *i.DBInstanceIdentifier)] = storageProps

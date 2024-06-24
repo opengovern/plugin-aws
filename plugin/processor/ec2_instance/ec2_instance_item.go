@@ -8,6 +8,7 @@ import (
 	"github.com/kaytu-io/kaytu/pkg/utils"
 	"github.com/kaytu-io/plugin-aws/plugin/kaytu"
 	"google.golang.org/protobuf/types/known/wrapperspb"
+	"sort"
 	"strings"
 )
 
@@ -123,6 +124,14 @@ func (i EC2InstanceItem) EC2InstanceDevice() (*golang.ChartRow, map[string]*gola
 		Current: fmt.Sprintf("%s", i.Wastage.RightSizing.Current.ENASupported),
 	}
 
+	costComponentPropertiesMap := make(map[string]*golang.Property)
+	for k, v := range i.Wastage.RightSizing.Current.CostComponents {
+		costComponentPropertiesMap[k] = &golang.Property{
+			Key:     fmt.Sprintf("  %s", k),
+			Current: fmt.Sprintf("$%.2f", v),
+		}
+	}
+
 	if i.Wastage.RightSizing.Recommended != nil {
 		row.Values["right_sized_cost"] = &golang.ChartRowItem{
 			Value: utils.FormatPriceFloat(i.Wastage.RightSizing.Recommended.Cost),
@@ -141,6 +150,14 @@ func (i EC2InstanceItem) EC2InstanceDevice() (*golang.ChartRow, map[string]*gola
 		iopsProperty.Recommended = i.Wastage.RightSizing.Recommended.EBSIops
 		netThroughputProperty.Recommended = i.Wastage.RightSizing.Recommended.NetworkThroughput
 		enaProperty.Recommended = i.Wastage.RightSizing.Recommended.ENASupported
+		for k, v := range i.Wastage.RightSizing.Recommended.CostComponents {
+			if _, ok := costComponentPropertiesMap[k]; !ok {
+				costComponentPropertiesMap[k] = &golang.Property{
+					Key: fmt.Sprintf("  %s", k),
+				}
+			}
+			costComponentPropertiesMap[k].Recommended = fmt.Sprintf("$%.2f", v)
+		}
 	}
 	properties.Properties = append(properties.Properties, regionProperty)
 	properties.Properties = append(properties.Properties, instanceSizeProperty)
@@ -170,6 +187,18 @@ func (i EC2InstanceItem) EC2InstanceDevice() (*golang.ChartRow, map[string]*gola
 			Current: enaSupported,
 		})
 	}
+
+	costComponentProperties := make([]*golang.Property, 0, len(costComponentPropertiesMap))
+	for _, v := range costComponentPropertiesMap {
+		costComponentProperties = append(costComponentProperties, v)
+	}
+	sort.Slice(costComponentProperties, func(i, j int) bool {
+		return costComponentProperties[i].Key < costComponentProperties[j].Key
+	})
+	properties.Properties = append(properties.Properties, &golang.Property{
+		Key: "Cost Components",
+	})
+	properties.Properties = append(properties.Properties, costComponentProperties...)
 
 	props[*i.Instance.InstanceId] = properties
 
@@ -246,6 +275,13 @@ func (i EC2InstanceItem) EBSVolumeDevice(v types.Volume, vs kaytu.EBSVolumeRecom
 		Key:     "  Provisioned Throughput",
 		Current: PNetworkThroughputMBps(vs.Current.ProvisionedThroughput),
 	}
+	costComponentPropertiesMap := make(map[string]*golang.Property)
+	for k, vv := range vs.Current.CostComponents {
+		costComponentPropertiesMap[k] = &golang.Property{
+			Key:     fmt.Sprintf("  %s", k),
+			Current: fmt.Sprintf("$%.2f", vv),
+		}
+	}
 
 	if vs.Recommended != nil {
 		row.Values["right_sized_cost"] = &golang.ChartRowItem{
@@ -262,6 +298,14 @@ func (i EC2InstanceItem) EBSVolumeDevice(v types.Volume, vs kaytu.EBSVolumeRecom
 		throughputProp.Recommended = fmt.Sprintf("%.2f", vs.Recommended.Throughput())
 		baselineThroughputProp.Recommended = utils.NetworkThroughputMbps(vs.Recommended.BaselineThroughput)
 		provisionedThroughputProp.Recommended = utils.PNetworkThroughputMbps(vs.Recommended.ProvisionedThroughput)
+		for k, vv := range vs.Recommended.CostComponents {
+			if _, ok := costComponentPropertiesMap[k]; !ok {
+				costComponentPropertiesMap[k] = &golang.Property{
+					Key: fmt.Sprintf("  %s", k),
+				}
+			}
+			costComponentPropertiesMap[k].Recommended = fmt.Sprintf("$%.2f", vv)
+		}
 	}
 
 	volumeTypeModification := &golang.Property{
@@ -289,6 +333,19 @@ func (i EC2InstanceItem) EBSVolumeDevice(v types.Volume, vs kaytu.EBSVolumeRecom
 	properties.Properties = append(properties.Properties, provisionedThroughputProp)
 	properties.Properties = append(properties.Properties, volumeTypeModification)
 	properties.Properties = append(properties.Properties, volumeSizeModification)
+
+	costComponentProperties := make([]*golang.Property, 0, len(costComponentPropertiesMap))
+	for _, vv := range costComponentPropertiesMap {
+		costComponentProperties = append(costComponentProperties, vv)
+	}
+	sort.Slice(costComponentProperties, func(i, j int) bool {
+		return costComponentProperties[i].Key < costComponentProperties[j].Key
+	})
+	properties.Properties = append(properties.Properties, &golang.Property{
+		Key: "Cost Components",
+	})
+	properties.Properties = append(properties.Properties, costComponentProperties...)
+
 	props[*v.VolumeId] = properties
 
 	return &row, props
