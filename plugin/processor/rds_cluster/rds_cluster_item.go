@@ -260,18 +260,6 @@ func (c RDSClusterItem) RDSInstanceDevice() ([]*golang.ChartRow, map[string]*gol
 		storageProps.Properties = append(storageProps.Properties, storageIOPSProperty)
 		storageProps.Properties = append(storageProps.Properties, storageThroughputProperty)
 
-		storageCostComponentProperties := make([]*golang.Property, 0, len(storageCostComponentPropertiesMap))
-		for _, v := range storageCostComponentPropertiesMap {
-			storageCostComponentProperties = append(storageCostComponentProperties, v)
-		}
-		sort.Slice(storageCostComponentProperties, func(i, j int) bool {
-			return storageCostComponentProperties[i].Key < storageCostComponentProperties[j].Key
-		})
-		storageProps.Properties = append(storageProps.Properties, &golang.Property{
-			Key: "Cost Components",
-		})
-		storageProps.Properties = append(storageProps.Properties, storageCostComponentProperties...)
-
 		volumeTypeModification := &golang.Property{
 			Key:         "Volume Type Modification",
 			Recommended: "No",
@@ -288,6 +276,18 @@ func (c RDSClusterItem) RDSInstanceDevice() ([]*golang.ChartRow, map[string]*gol
 		}
 		storageProps.Properties = append(storageProps.Properties, volumeTypeModification)
 		storageProps.Properties = append(storageProps.Properties, volumeSizeModification)
+
+		storageCostComponentProperties := make([]*golang.Property, 0, len(storageCostComponentPropertiesMap))
+		for _, v := range storageCostComponentPropertiesMap {
+			storageCostComponentProperties = append(storageCostComponentProperties, v)
+		}
+		sort.Slice(storageCostComponentProperties, func(i, j int) bool {
+			return storageCostComponentProperties[i].Key < storageCostComponentProperties[j].Key
+		})
+		storageProps.Properties = append(storageProps.Properties, &golang.Property{
+			Key: "Cost Components",
+		})
+		storageProps.Properties = append(storageProps.Properties, storageCostComponentProperties...)
 
 		deviceProps[fmt.Sprintf("%s-compute", *i.DBInstanceIdentifier)] = computeProps
 		deviceProps[fmt.Sprintf("%s-storage", *i.DBInstanceIdentifier)] = storageProps

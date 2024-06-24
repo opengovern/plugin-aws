@@ -262,18 +262,6 @@ func (i RDSInstanceItem) RDSInstanceDevice() ([]*golang.ChartRow, map[string]*go
 	storageProps.Properties = append(storageProps.Properties, storageThroughputProperty)
 	storageProps.Properties = append(storageProps.Properties, runtimeProperty)
 
-	storageCostComponentProperties := make([]*golang.Property, 0, len(storageCostComponentPropertiesMap))
-	for _, v := range storageCostComponentPropertiesMap {
-		storageCostComponentProperties = append(storageCostComponentProperties, v)
-	}
-	sort.Slice(storageCostComponentProperties, func(i, j int) bool {
-		return storageCostComponentProperties[i].Key < storageCostComponentProperties[j].Key
-	})
-	storageProps.Properties = append(storageProps.Properties, &golang.Property{
-		Key: "Cost Components",
-	})
-	storageProps.Properties = append(storageProps.Properties, storageCostComponentProperties...)
-
 	volumeTypeModification := &golang.Property{
 		Key:         "Volume Type Modification",
 		Recommended: "No",
@@ -290,6 +278,18 @@ func (i RDSInstanceItem) RDSInstanceDevice() ([]*golang.ChartRow, map[string]*go
 	}
 	storageProps.Properties = append(storageProps.Properties, volumeTypeModification)
 	storageProps.Properties = append(storageProps.Properties, volumeSizeModification)
+
+	storageCostComponentProperties := make([]*golang.Property, 0, len(storageCostComponentPropertiesMap))
+	for _, v := range storageCostComponentPropertiesMap {
+		storageCostComponentProperties = append(storageCostComponentProperties, v)
+	}
+	sort.Slice(storageCostComponentProperties, func(i, j int) bool {
+		return storageCostComponentProperties[i].Key < storageCostComponentProperties[j].Key
+	})
+	storageProps.Properties = append(storageProps.Properties, &golang.Property{
+		Key: "Cost Components",
+	})
+	storageProps.Properties = append(storageProps.Properties, storageCostComponentProperties...)
 
 	props[computeRow.RowId] = computeProps
 	props[storageRow.RowId] = storageProps
