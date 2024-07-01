@@ -12,7 +12,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/rds v1.78.0
 	github.com/aws/aws-sdk-go-v2/service/sts v1.28.6
 	github.com/google/uuid v1.6.0
-	github.com/kaytu-io/kaytu v0.14.2-rc.2.0.20240623175355-3f14c8c8b06e
+	github.com/kaytu-io/kaytu v0.16.3-rc.2
 	github.com/stretchr/testify v1.9.0
 	golang.org/x/net v0.26.0
 	google.golang.org/protobuf v1.34.2
@@ -99,7 +99,6 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240610135401-a8a62080eff3 // indirect
 	google.golang.org/grpc v1.64.0 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
-	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 

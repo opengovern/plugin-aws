@@ -5,6 +5,7 @@ import (
 	"fmt"
 	types2 "github.com/aws/aws-sdk-go-v2/service/cloudwatch/types"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
+	"github.com/kaytu-io/kaytu/pkg/plugin/sdk"
 	"github.com/kaytu-io/kaytu/pkg/utils"
 	aws2 "github.com/kaytu-io/plugin-aws/plugin/aws"
 	"time"
@@ -27,12 +28,14 @@ func NewGetEC2InstanceMetricsJob(processor *Processor, region string, instance t
 	}
 }
 
-func (j *GetEC2InstanceMetricsJob) Id() string {
-	return fmt.Sprintf("get_ec2_instance_metrics_%s", *j.instance.InstanceId)
+func (j *GetEC2InstanceMetricsJob) Properties() sdk.JobProperties {
+	return sdk.JobProperties{
+		ID:          fmt.Sprintf("get_ec2_instance_metrics_%s", *j.instance.InstanceId),
+		Description: fmt.Sprintf("Getting metrics of %s", *j.instance.InstanceId),
+		MaxRetry:    0,
+	}
 }
-func (j *GetEC2InstanceMetricsJob) Description() string {
-	return fmt.Sprintf("Getting metrics of %s", *j.instance.InstanceId)
-}
+
 func (j *GetEC2InstanceMetricsJob) Run(ctx context.Context) error {
 	isAutoScaling := false
 	for _, tag := range j.instance.Tags {
