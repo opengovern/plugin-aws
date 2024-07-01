@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/aws/aws-sdk-go-v2/service/rds/types"
 	"github.com/google/uuid"
+	"github.com/kaytu-io/kaytu/pkg/plugin/sdk"
 	"github.com/kaytu-io/kaytu/pkg/utils"
 	"github.com/kaytu-io/kaytu/preferences"
 	"github.com/kaytu-io/plugin-aws/plugin/kaytu"
@@ -24,12 +25,14 @@ func NewListRDSInstancesInRegionJob(processor *Processor, region string) *ListRD
 	}
 }
 
-func (j *ListRDSInstancesInRegionJob) Id() string {
-	return fmt.Sprintf("list_rds_in_%s", j.region)
+func (j *ListRDSInstancesInRegionJob) Properties() sdk.JobProperties {
+	return sdk.JobProperties{
+		ID:          fmt.Sprintf("list_rds_in_%s", j.region),
+		Description: fmt.Sprintf("Listing all RDS Instances in %s", j.region),
+		MaxRetry:    0,
+	}
 }
-func (j *ListRDSInstancesInRegionJob) Description() string {
-	return fmt.Sprintf("Listing all RDS Instances in %s", j.region)
-}
+
 func (j *ListRDSInstancesInRegionJob) Run(ctx context.Context) error {
 	instances, err := j.processor.provider.ListRDSInstance(ctx, j.region)
 	if err != nil {

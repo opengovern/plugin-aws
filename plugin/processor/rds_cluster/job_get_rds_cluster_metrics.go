@@ -5,6 +5,7 @@ import (
 	"fmt"
 	types2 "github.com/aws/aws-sdk-go-v2/service/cloudwatch/types"
 	"github.com/aws/aws-sdk-go-v2/service/rds/types"
+	"github.com/kaytu-io/kaytu/pkg/plugin/sdk"
 	"github.com/kaytu-io/kaytu/pkg/utils"
 	"strings"
 	"time"
@@ -27,12 +28,14 @@ func NewGetRDSInstanceMetricsJob(processor *Processor, region string, cluster ty
 	}
 }
 
-func (j *GetRDSClusterMetricsJob) Id() string {
-	return fmt.Sprintf("get_rds_cluster_metrics_%s", *j.cluster.DBClusterIdentifier)
+func (j *GetRDSClusterMetricsJob) Properties() sdk.JobProperties {
+	return sdk.JobProperties{
+		ID:          fmt.Sprintf("get_rds_cluster_metrics_%s", *j.cluster.DBClusterIdentifier),
+		Description: fmt.Sprintf("Getting metrics of %s", *j.cluster.DBClusterIdentifier),
+		MaxRetry:    0,
+	}
 }
-func (j *GetRDSClusterMetricsJob) Description() string {
-	return fmt.Sprintf("Getting metrics of %s", *j.cluster.DBClusterIdentifier)
-}
+
 func (j *GetRDSClusterMetricsJob) Run(ctx context.Context) error {
 	allMetrics := map[string]map[string][]types2.Datapoint{}
 	for _, instance := range j.instances {

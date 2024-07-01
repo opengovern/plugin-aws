@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/aws/aws-sdk-go-v2/service/rds/types"
 	"github.com/google/uuid"
+	"github.com/kaytu-io/kaytu/pkg/plugin/sdk"
 	"github.com/kaytu-io/kaytu/pkg/utils"
 	"github.com/kaytu-io/kaytu/preferences"
 	"github.com/kaytu-io/plugin-aws/plugin/kaytu"
@@ -23,12 +24,14 @@ func NewOptimizeRDSJob(processor *Processor, item RDSClusterItem) *OptimizeRDSCl
 	}
 }
 
-func (j *OptimizeRDSClusterJob) Id() string {
-	return fmt.Sprintf("optimize_rds_cluster_%s", *j.item.Cluster.DBClusterIdentifier)
+func (j *OptimizeRDSClusterJob) Properties() sdk.JobProperties {
+	return sdk.JobProperties{
+		ID:          fmt.Sprintf("optimize_rds_cluster_%s", *j.item.Cluster.DBClusterIdentifier),
+		Description: fmt.Sprintf("Optimizing %s", *j.item.Cluster.DBClusterIdentifier),
+		MaxRetry:    3,
+	}
 }
-func (j *OptimizeRDSClusterJob) Description() string {
-	return fmt.Sprintf("Optimizing %s", *j.item.Cluster.DBClusterIdentifier)
-}
+
 func (j *OptimizeRDSClusterJob) Run(ctx context.Context) error {
 	if j.item.LazyLoadingEnabled {
 		j.processor.jobQueue.Push(NewGetRDSInstanceMetricsJob(j.processor, j.item.Region, j.item.Cluster, j.item.Instances))

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	types2 "github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/google/uuid"
+	"github.com/kaytu-io/kaytu/pkg/plugin/sdk"
 	"github.com/kaytu-io/kaytu/pkg/utils"
 	"github.com/kaytu-io/kaytu/preferences"
 	kaytu2 "github.com/kaytu-io/plugin-aws/plugin/kaytu"
@@ -23,12 +24,14 @@ func NewListEC2InstancesInRegionJob(processor *Processor, region string) *ListEC
 	}
 }
 
-func (j *ListEC2InstancesInRegionJob) Id() string {
-	return fmt.Sprintf("list_ec2_instances_in_%s", j.region)
+func (j *ListEC2InstancesInRegionJob) Properties() sdk.JobProperties {
+	return sdk.JobProperties{
+		ID:          fmt.Sprintf("list_ec2_instances_in_%s", j.region),
+		Description: fmt.Sprintf("Listing all EC2 Instances in %s", j.region),
+		MaxRetry:    0,
+	}
 }
-func (j *ListEC2InstancesInRegionJob) Description() string {
-	return fmt.Sprintf("Listing all EC2 Instances in %s", j.region)
-}
+
 func (j *ListEC2InstancesInRegionJob) Run(ctx context.Context) error {
 	instances, err := j.processor.provider.ListInstances(ctx, j.region)
 	if err != nil {

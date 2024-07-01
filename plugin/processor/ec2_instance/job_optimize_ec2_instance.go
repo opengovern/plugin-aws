@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/google/uuid"
+	"github.com/kaytu-io/kaytu/pkg/plugin/sdk"
 	"github.com/kaytu-io/kaytu/pkg/utils"
 	"github.com/kaytu-io/kaytu/preferences"
 	kaytu2 "github.com/kaytu-io/plugin-aws/plugin/kaytu"
@@ -23,12 +24,14 @@ func NewOptimizeEC2InstanceJob(processor *Processor, item EC2InstanceItem) *Opti
 	}
 }
 
-func (j *OptimizeEC2InstanceJob) Id() string {
-	return fmt.Sprintf("optimize_ec2_instance_%s", *j.item.Instance.InstanceId)
+func (j *OptimizeEC2InstanceJob) Properties() sdk.JobProperties {
+	return sdk.JobProperties{
+		ID:          fmt.Sprintf("optimize_ec2_instance_%s", *j.item.Instance.InstanceId),
+		Description: fmt.Sprintf("Optimizing %s", *j.item.Instance.InstanceId),
+		MaxRetry:    3,
+	}
 }
-func (j *OptimizeEC2InstanceJob) Description() string {
-	return fmt.Sprintf("Optimizing %s", *j.item.Instance.InstanceId)
-}
+
 func (j *OptimizeEC2InstanceJob) Run(ctx context.Context) error {
 	if j.item.LazyLoadingEnabled {
 		j.processor.jobQueue.Push(NewGetEC2InstanceMetricsJob(j.processor, j.item.Region, j.item.Instance, j.item.Image))

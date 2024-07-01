@@ -5,6 +5,7 @@ import (
 	"fmt"
 	types2 "github.com/aws/aws-sdk-go-v2/service/cloudwatch/types"
 	"github.com/aws/aws-sdk-go-v2/service/rds/types"
+	"github.com/kaytu-io/kaytu/pkg/plugin/sdk"
 	"strings"
 	"time"
 )
@@ -24,12 +25,14 @@ func NewGetRDSInstanceMetricsJob(processor *Processor, region string, instance t
 	}
 }
 
-func (j *GetRDSInstanceMetricsJob) Id() string {
-	return fmt.Sprintf("get_rds_metrics_%s", *j.instance.DBInstanceIdentifier)
+func (j *GetRDSInstanceMetricsJob) Properties() sdk.JobProperties {
+	return sdk.JobProperties{
+		ID:          fmt.Sprintf("get_rds_metrics_%s", *j.instance.DBInstanceIdentifier),
+		Description: fmt.Sprintf("Getting metrics of %s", *j.instance.DBInstanceIdentifier),
+		MaxRetry:    0,
+	}
 }
-func (j *GetRDSInstanceMetricsJob) Description() string {
-	return fmt.Sprintf("Getting metrics of %s", *j.instance.DBInstanceIdentifier)
-}
+
 func (j *GetRDSInstanceMetricsJob) Run(ctx context.Context) error {
 	instanceMetrics := map[string][]types2.Datapoint{}
 	cwTM99Metrics, err := j.processor.metricProvider.GetDayByDayMetrics(
