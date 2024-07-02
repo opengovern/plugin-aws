@@ -2,6 +2,133 @@ syntax = "proto3";
 
 package pluginaws.optimization.v1;
 option go_package="github.com/kaytu-io/plugin-aws/plugin/proto/src/golang";
+import "google/protobuf/wrappers.proto";
+import "google/protobuf/timestamp.proto";
+
+// Requests
+
+message Metric {
+  repeated Datapoint metric = 1;
+}
+
+message VolumeMetrics {
+  map<string,Metric> metrics = 1;
+}
+
+message EC2Placement {
+  string tenancy = 1;
+  string availability_zone = 2;
+  string hashed_host_id = 3;
+}
+
+message EC2Instance {
+  string hashed_instance_id = 1;
+  string state = 2;
+  string instance_type = 3;
+  string platform = 4;
+  int32 threads_per_core = 5;
+  int32 core_count = 6;
+  bool ebs_optimized = 7;
+  string instance_lifecycle = 8;
+  google.protobuf.StringValue monitoring = 9;
+  EC2Placement placement = 10;
+  string usage_operation = 11;
+  string tenancy = 12;
+}
+
+message EC2Volume {
+  string hashed_volume_id = 1;
+  string volume_type = 2;
+  google.protobuf.Int32Value size = 3;
+  google.protobuf.Int32Value iops = 4;
+  google.protobuf.StringValue availability_zone = 5;
+  google.protobuf.DoubleValue throughput = 6;
+}
+
+message EC2InstanceOptimizationRequest {
+  google.protobuf.StringValue request_id = 1;
+  google.protobuf.StringValue cli_version = 2;
+  map<string,string> identification = 3;
+  EC2Instance instance = 4;
+  repeated EC2Volume volumes = 5;
+  int64 volume_count = 6;
+  map<string,Metric> metrics = 7;
+  map<string,VolumeMetrics> volume_metrics = 8;
+  string region = 9;
+  map<string,google.protobuf.StringValue> preferences = 10;
+  bool loading = 11;
+}
+
+// Responses
+message Datapoint {
+  google.protobuf.DoubleValue average = 1;
+  google.protobuf.DoubleValue maximum = 2;
+  google.protobuf.DoubleValue minimum = 3;
+  google.protobuf.DoubleValue sample_count = 4;
+  google.protobuf.DoubleValue sum = 5;
+  google.protobuf.Timestamp timestamp = 6;
+}
+
+message Usage {
+  google.protobuf.DoubleValue avg = 1;
+  google.protobuf.DoubleValue max = 2;
+  google.protobuf.DoubleValue min = 3;
+  Datapoint last = 4;
+}
+
+message RightsizingEC2Instance {
+  string instance_type = 1;
+  string region = 2;
+  double cost = 3;
+  map<string,double> cost_components = 4;
+  string processor = 5;
+  string architecture = 6;
+  int64 vcpu = 7;
+  double memory = 8;
+  string ebs_bandwidth = 9;
+  string ebs_iops = 10;
+  string network_throughput = 11;
+  string ena_supported = 12;
+  double license_price = 13;
+  string license = 14;
+}
+
+message RightSizingRecommendation {
+    RightsizingEC2Instance current = 1;
+    RightsizingEC2Instance recommended = 2;
+    Usage vcpu = 3;
+    Usage memory = 4;
+    Usage ebs_bandwidth = 5;
+    Usage ebs_iops = 6;
+    Usage network_throughput = 7;
+    string description = 8;
+}
+
+message RightsizingEBSVolume {
+  string tier = 1;
+  google.protobuf.Int32Value volume_size = 2;
+  int32 baseline_iops = 3;
+  google.protobuf.Int32Value provisioned_iops = 4;
+  double baseline_throughput = 5;
+  google.protobuf.DoubleValue provisioned_throughput = 6;
+  double cost = 7;
+  map<string,double> cost_components = 8;
+}
+
+message EBSVolumeRecommendation {
+    RightsizingEBSVolume current = 1;
+    RightsizingEBSVolume recommended = 2;
+    Usage iops = 3;
+    Usage throughput = 4;
+    string description = 5;
+}
+
+message EC2InstanceOptimizationResponse {
+    RightSizingRecommendation right_sizing = 1;
+    map<string,EBSVolumeRecommendation> volume_right_sizing = 2;
+}
+
 
 service Optimization {
+  rpc EC2InstanceOptimization(EC2InstanceOptimizationRequest) returns (EC2InstanceOptimizationResponse);
 }
