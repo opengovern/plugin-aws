@@ -12,9 +12,10 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/rds v1.78.0
 	github.com/aws/aws-sdk-go-v2/service/sts v1.28.6
 	github.com/google/uuid v1.6.0
-	github.com/kaytu-io/kaytu v0.16.3-rc.2
+	github.com/kaytu-io/kaytu v0.14.3
 	github.com/stretchr/testify v1.9.0
 	golang.org/x/net v0.26.0
+	google.golang.org/grpc v1.64.0
 	google.golang.org/protobuf v1.34.2
 )
 
@@ -54,7 +55,6 @@ require (
 	github.com/go-git/go-git/v5 v5.12.0 // indirect
 	github.com/golang-jwt/jwt/v4 v4.5.0 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
-	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/google/go-github v17.0.0+incompatible // indirect
 	github.com/google/go-github/v62 v62.0.0 // indirect
@@ -97,7 +97,6 @@ require (
 	golang.org/x/text v0.16.0 // indirect
 	golang.org/x/tools v0.21.1-0.20240508182429-e35e4ccd0d2d // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240610135401-a8a62080eff3 // indirect
-	google.golang.org/grpc v1.64.0 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
