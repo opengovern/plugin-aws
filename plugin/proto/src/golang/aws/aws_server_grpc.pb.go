@@ -2,9 +2,9 @@
 // versions:
 // - protoc-gen-go-grpc v1.3.0
 // - protoc             v3.12.4
-// source: plugin/proto/server.proto
+// source: plugin/proto/aws_server.proto
 
-package golang
+package aws
 
 import (
 	context "context"
@@ -105,5 +105,5 @@ var Optimization_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "plugin/proto/server.proto",
+	Metadata: "plugin/proto/aws_server.proto",
 }
