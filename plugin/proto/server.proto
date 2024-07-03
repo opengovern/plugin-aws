@@ -1,7 +1,0 @@
-syntax = "proto3";
-
-package pluginaws.optimization.v1;
-option go_package="github.com/kaytu-io/plugin-aws/plugin/proto/src/golang";
-
-service Optimization {
-}
