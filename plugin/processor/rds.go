@@ -3,12 +3,12 @@ package processor
 import (
 	"github.com/kaytu-io/kaytu/pkg/plugin/proto/src/golang"
 	"github.com/kaytu-io/kaytu/pkg/plugin/sdk"
+	"github.com/kaytu-io/kaytu/pkg/utils"
 	"github.com/kaytu-io/plugin-aws/plugin/aws"
 	"github.com/kaytu-io/plugin-aws/plugin/kaytu"
 	"github.com/kaytu-io/plugin-aws/plugin/processor/ec2_instance"
 	"github.com/kaytu-io/plugin-aws/plugin/processor/rds_cluster"
 	"github.com/kaytu-io/plugin-aws/plugin/processor/rds_instance"
-	util "github.com/kaytu-io/plugin-aws/utils"
 	"sync/atomic"
 )
 
@@ -19,7 +19,7 @@ type RDSProcessor struct {
 
 func NewRDSProcessor(provider *aws.AWS, metricProvider *aws.CloudWatch, identification map[string]string, publishOptimizationItem func(item *golang.ChartOptimizationItem), publishResultSummary func(summary *golang.ResultSummary), kaytuAcccessToken string, jobQueue *sdk.JobQueue, configurations *kaytu.Configuration, observabilityDays int, preferences []*golang.PreferenceItem) *RDSProcessor {
 	lazyloadCounter := atomic.Uint32{}
-	summary := util.NewMap[string, ec2_instance.EC2InstanceSummary]()
+	summary := utils.NewConcurrentMap[string, ec2_instance.EC2InstanceSummary]()
 	return &RDSProcessor{
 		rdsInstanceProcessor: rds_instance.NewProcessor(provider, metricProvider, identification, publishOptimizationItem, publishResultSummary, kaytuAcccessToken, jobQueue, configurations, &lazyloadCounter, observabilityDays, &summary, preferences),
 		rdsClusterProcessor:  rds_cluster.NewProcessor(provider, metricProvider, identification, publishOptimizationItem, publishResultSummary, kaytuAcccessToken, jobQueue, configurations, &lazyloadCounter, observabilityDays, &summary, preferences),

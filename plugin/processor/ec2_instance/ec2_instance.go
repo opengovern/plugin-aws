@@ -10,7 +10,6 @@ import (
 	"github.com/kaytu-io/kaytu/pkg/utils"
 	aws2 "github.com/kaytu-io/plugin-aws/plugin/aws"
 	kaytu2 "github.com/kaytu-io/plugin-aws/plugin/kaytu"
-	util "github.com/kaytu-io/plugin-aws/utils"
 	"strings"
 	"sync/atomic"
 )
@@ -19,7 +18,7 @@ type Processor struct {
 	provider                *aws2.AWS
 	metricProvider          *aws2.CloudWatch
 	identification          map[string]string
-	items                   util.ConcurrentMap[string, EC2InstanceItem]
+	items                   utils.ConcurrentMap[string, EC2InstanceItem]
 	publishOptimizationItem func(item *golang.ChartOptimizationItem)
 	publishResultSummary    func(summary *golang.ResultSummary)
 	kaytuAcccessToken       string
@@ -29,7 +28,7 @@ type Processor struct {
 	observabilityDays       int
 	defaultPreferences      []*golang.PreferenceItem
 
-	summary util.ConcurrentMap[string, EC2InstanceSummary]
+	summary utils.ConcurrentMap[string, EC2InstanceSummary]
 }
 
 func NewProcessor(
@@ -48,7 +47,7 @@ func NewProcessor(
 		provider:                prv,
 		metricProvider:          metric,
 		identification:          identification,
-		items:                   util.NewMap[string, EC2InstanceItem](),
+		items:                   utils.NewConcurrentMap[string, EC2InstanceItem](),
 		publishOptimizationItem: publishOptimizationItem,
 		publishResultSummary:    publishResultSummary,
 		kaytuAcccessToken:       kaytuAcccessToken,
@@ -59,7 +58,7 @@ func NewProcessor(
 
 		lazyloadCounter: atomic.Uint32{},
 
-		summary: util.NewMap[string, EC2InstanceSummary](),
+		summary: utils.NewConcurrentMap[string, EC2InstanceSummary](),
 	}
 	jobQueue.Push(NewListAllRegionsJob(r))
 	return r
