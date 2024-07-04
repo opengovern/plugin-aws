@@ -9,7 +9,6 @@ import (
 	"github.com/kaytu-io/plugin-aws/plugin/aws"
 	"github.com/kaytu-io/plugin-aws/plugin/kaytu"
 	"github.com/kaytu-io/plugin-aws/plugin/processor/ec2_instance"
-	util "github.com/kaytu-io/plugin-aws/utils"
 	"strings"
 	"sync/atomic"
 )
@@ -18,7 +17,7 @@ type Processor struct {
 	provider                *aws.AWS
 	metricProvider          *aws.CloudWatch
 	identification          map[string]string
-	items                   util.ConcurrentMap[string, RDSClusterItem]
+	items                   utils.ConcurrentMap[string, RDSClusterItem]
 	publishOptimizationItem func(item *golang.ChartOptimizationItem)
 	publishResultSummary    func(summary *golang.ResultSummary)
 	kaytuAcccessToken       string
@@ -27,16 +26,16 @@ type Processor struct {
 	lazyloadCounter         *atomic.Uint32
 	observabilityDays       int
 
-	summary            *util.ConcurrentMap[string, ec2_instance.EC2InstanceSummary]
+	summary            *utils.ConcurrentMap[string, ec2_instance.EC2InstanceSummary]
 	defaultPreferences []*golang.PreferenceItem
 }
 
-func NewProcessor(provider *aws.AWS, metricProvider *aws.CloudWatch, identification map[string]string, publishOptimizationItem func(item *golang.ChartOptimizationItem), publishResultSummary func(summary *golang.ResultSummary), kaytuAcccessToken string, jobQueue *sdk.JobQueue, configurations *kaytu.Configuration, lazyloadCounter *atomic.Uint32, observabilityDays int, summary *util.ConcurrentMap[string, ec2_instance.EC2InstanceSummary], preferences []*golang.PreferenceItem) *Processor {
+func NewProcessor(provider *aws.AWS, metricProvider *aws.CloudWatch, identification map[string]string, publishOptimizationItem func(item *golang.ChartOptimizationItem), publishResultSummary func(summary *golang.ResultSummary), kaytuAcccessToken string, jobQueue *sdk.JobQueue, configurations *kaytu.Configuration, lazyloadCounter *atomic.Uint32, observabilityDays int, summary *utils.ConcurrentMap[string, ec2_instance.EC2InstanceSummary], preferences []*golang.PreferenceItem) *Processor {
 	r := &Processor{
 		provider:                provider,
 		metricProvider:          metricProvider,
 		identification:          identification,
-		items:                   util.NewMap[string, RDSClusterItem](),
+		items:                   utils.NewConcurrentMap[string, RDSClusterItem](),
 		publishOptimizationItem: publishOptimizationItem,
 		publishResultSummary:    publishResultSummary,
 		kaytuAcccessToken:       kaytuAcccessToken,
