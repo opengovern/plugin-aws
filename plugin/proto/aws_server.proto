@@ -15,6 +15,10 @@ message VolumeMetrics {
   map<string,Metric> metrics = 1;
 }
 
+message RDSClusterMetrics {
+  map<string,Metric> metrics = 1;
+}
+
 // EC2 Instance
 
 message EC2Placement {
@@ -105,11 +109,10 @@ message RDSClusterOptimizationRequest {
   map<string,string> identification = 3;
   RDSCluster cluster = 4;
   repeated RDSInstance instances = 5;
-  map<string,Metric> metrics = 6;
-  map<string,VolumeMetrics> volume_metrics = 7;
-  string region = 8;
-  map<string,google.protobuf.StringValue> preferences = 9;
-  bool loading = 10;
+  map<string,RDSClusterMetrics> metrics = 6;
+  string region = 7;
+  map<string,google.protobuf.StringValue> preferences = 8;
+  bool loading = 9;
 }
 
 // Responses ====================================
