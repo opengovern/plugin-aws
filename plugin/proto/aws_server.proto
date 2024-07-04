@@ -5,7 +5,7 @@ option go_package="github.com/kaytu-io/plugin-aws/plugin/proto/src/golang/aws";
 import "google/protobuf/wrappers.proto";
 import "google/protobuf/timestamp.proto";
 
-// Requests
+// Requests ====================================
 
 message Metric {
   repeated Datapoint metric = 1;
@@ -14,6 +14,8 @@ message Metric {
 message VolumeMetrics {
   map<string,Metric> metrics = 1;
 }
+
+// EC2 Instance
 
 message EC2Placement {
   string tenancy = 1;
@@ -59,7 +61,58 @@ message EC2InstanceOptimizationRequest {
   bool loading = 11;
 }
 
-// Responses
+// RDS Instance
+
+message RDSInstance {
+  string hashed_instance_id = 1;
+  string availability_zone = 2;
+  string instance_type = 3;
+  string engine = 4;
+  string engine_version = 5;
+  string license_model = 6;
+  google.protobuf.Int32Value backup_retention_period = 7;
+  string cluster_type = 8;
+  bool performance_insights_enabled = 9;
+  google.protobuf.Int32Value performance_insights_retention_period = 10;
+  google.protobuf.StringValue storage_type = 11;
+  google.protobuf.Int32Value storage_size = 12;
+  google.protobuf.Int32Value storage_iops = 13;
+  google.protobuf.DoubleValue storage_throughput = 14;
+}
+
+message RDSInstanceOptimizationRequest {
+  google.protobuf.StringValue request_id = 1;
+  google.protobuf.StringValue cli_version = 2;
+  map<string,string> identification = 3;
+  RDSInstance instance = 4;
+  map<string,Metric> metrics = 5;
+  map<string,VolumeMetrics> volume_metrics = 6;
+  string region = 7;
+  map<string,google.protobuf.StringValue> preferences = 8;
+  bool loading = 9;
+}
+
+// RDS Cluster
+
+message RDSCluster {
+  string hashed_cluster_id = 1;
+  string engine = 2;
+}
+
+message RDSClusterOptimizationRequest {
+  google.protobuf.StringValue request_id = 1;
+  google.protobuf.StringValue cli_version = 2;
+  map<string,string> identification = 3;
+  RDSCluster cluster = 4;
+  repeated RDSInstance instances = 5;
+  map<string,Metric> metrics = 6;
+  map<string,VolumeMetrics> volume_metrics = 7;
+  string region = 8;
+  map<string,google.protobuf.StringValue> preferences = 9;
+  bool loading = 10;
+}
+
+// Responses ====================================
 message Datapoint {
   google.protobuf.DoubleValue average = 1;
   google.protobuf.DoubleValue maximum = 2;
@@ -76,6 +129,7 @@ message Usage {
   Datapoint last = 4;
 }
 
+// EC2Instance
 message RightsizingEC2Instance {
   string instance_type = 1;
   string region = 2;
@@ -93,15 +147,15 @@ message RightsizingEC2Instance {
   string license = 14;
 }
 
-message RightSizingRecommendation {
-    RightsizingEC2Instance current = 1;
-    RightsizingEC2Instance recommended = 2;
-    Usage vcpu = 3;
-    Usage memory = 4;
-    Usage ebs_bandwidth = 5;
-    Usage ebs_iops = 6;
-    Usage network_throughput = 7;
-    string description = 8;
+message EC2InstanceRightSizingRecommendation {
+  RightsizingEC2Instance current = 1;
+  RightsizingEC2Instance recommended = 2;
+  Usage vcpu = 3;
+  Usage memory = 4;
+  Usage ebs_bandwidth = 5;
+  Usage ebs_iops = 6;
+  Usage network_throughput = 7;
+  string description = 8;
 }
 
 message RightsizingEBSVolume {
@@ -116,19 +170,67 @@ message RightsizingEBSVolume {
 }
 
 message EBSVolumeRecommendation {
-    RightsizingEBSVolume current = 1;
-    RightsizingEBSVolume recommended = 2;
-    Usage iops = 3;
-    Usage throughput = 4;
-    string description = 5;
+  RightsizingEBSVolume current = 1;
+  RightsizingEBSVolume recommended = 2;
+  Usage iops = 3;
+  Usage throughput = 4;
+  string description = 5;
 }
 
 message EC2InstanceOptimizationResponse {
-    RightSizingRecommendation right_sizing = 1;
-    map<string,EBSVolumeRecommendation> volume_right_sizing = 2;
+  EC2InstanceRightSizingRecommendation right_sizing = 1;
+  map<string,EBSVolumeRecommendation> volume_right_sizing = 2;
 }
 
+// RDSInstance
+
+message RightsizingAwsRds {
+  string region = 1;
+  string instance_type = 2;
+  string engine = 3;
+  string engine_version = 4;
+  string cluster_type = 5;
+  string processor = 6;
+  string architecture = 7;
+  int64 vcpu = 8;
+  int64 memory_gb = 9;
+  google.protobuf.StringValue storage_type = 10;
+  google.protobuf.Int32Value storage_size = 11;
+  google.protobuf.Int32Value storage_iops = 12;
+  google.protobuf.DoubleValue storage_throughput = 13;
+  double cost = 14;
+  map<string,double> cost_components = 15;
+  double compute_cost = 16;
+  map<string,double> compute_cost_components = 17;
+  double storage_cost = 18;
+  map<string,double> storage_cost_components = 19;
+}
+
+message RDSInstanceRightSizingRecommendation {
+  RightsizingAwsRds current = 1;
+  RightsizingAwsRds recommended = 2;
+  Usage vcpu = 3;
+  Usage free_memory_bytes = 4;
+  Usage free_storage_bytes = 5;
+  Usage network_throughput_bytes = 6;
+  Usage storage_iops = 7;
+  Usage storage_throughput = 8;
+  Usage volume_bytes_used = 9;
+  string description = 10;
+}
+
+message RDSInstanceOptimizationResponse {
+  RDSInstanceRightSizingRecommendation right_sizing = 1;
+}
+
+// RDSCluster
+
+message RDSClusterOptimizationResponse {
+  map<string,RDSInstanceRightSizingRecommendation> right_sizing = 1;
+}
 
 service Optimization {
   rpc EC2InstanceOptimization(EC2InstanceOptimizationRequest) returns (EC2InstanceOptimizationResponse);
+  rpc RDSInstanceOptimization(RDSInstanceOptimizationRequest) returns (RDSInstanceOptimizationResponse);
+  rpc RDSClusterOptimization(RDSClusterOptimizationRequest) returns (RDSClusterOptimizationResponse);
 }

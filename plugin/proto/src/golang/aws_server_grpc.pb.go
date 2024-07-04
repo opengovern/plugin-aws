@@ -20,6 +20,8 @@ const _ = grpc.SupportPackageIsVersion7
 
 const (
 	Optimization_EC2InstanceOptimization_FullMethodName = "/pluginaws.optimization.v1.Optimization/EC2InstanceOptimization"
+	Optimization_RDSInstanceOptimization_FullMethodName = "/pluginaws.optimization.v1.Optimization/RDSInstanceOptimization"
+	Optimization_RDSClusterOptimization_FullMethodName  = "/pluginaws.optimization.v1.Optimization/RDSClusterOptimization"
 )
 
 // OptimizationClient is the client API for Optimization service.
@@ -27,6 +29,8 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type OptimizationClient interface {
 	EC2InstanceOptimization(ctx context.Context, in *EC2InstanceOptimizationRequest, opts ...grpc.CallOption) (*EC2InstanceOptimizationResponse, error)
+	RDSInstanceOptimization(ctx context.Context, in *RDSInstanceOptimizationRequest, opts ...grpc.CallOption) (*RDSInstanceOptimizationResponse, error)
+	RDSClusterOptimization(ctx context.Context, in *RDSClusterOptimizationRequest, opts ...grpc.CallOption) (*RDSClusterOptimizationResponse, error)
 }
 
 type optimizationClient struct {
@@ -46,11 +50,31 @@ func (c *optimizationClient) EC2InstanceOptimization(ctx context.Context, in *EC
 	return out, nil
 }
 
+func (c *optimizationClient) RDSInstanceOptimization(ctx context.Context, in *RDSInstanceOptimizationRequest, opts ...grpc.CallOption) (*RDSInstanceOptimizationResponse, error) {
+	out := new(RDSInstanceOptimizationResponse)
+	err := c.cc.Invoke(ctx, Optimization_RDSInstanceOptimization_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *optimizationClient) RDSClusterOptimization(ctx context.Context, in *RDSClusterOptimizationRequest, opts ...grpc.CallOption) (*RDSClusterOptimizationResponse, error) {
+	out := new(RDSClusterOptimizationResponse)
+	err := c.cc.Invoke(ctx, Optimization_RDSClusterOptimization_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // OptimizationServer is the server API for Optimization service.
 // All implementations must embed UnimplementedOptimizationServer
 // for forward compatibility
 type OptimizationServer interface {
 	EC2InstanceOptimization(context.Context, *EC2InstanceOptimizationRequest) (*EC2InstanceOptimizationResponse, error)
+	RDSInstanceOptimization(context.Context, *RDSInstanceOptimizationRequest) (*RDSInstanceOptimizationResponse, error)
+	RDSClusterOptimization(context.Context, *RDSClusterOptimizationRequest) (*RDSClusterOptimizationResponse, error)
 	mustEmbedUnimplementedOptimizationServer()
 }
 
@@ -60,6 +84,12 @@ type UnimplementedOptimizationServer struct {
 
 func (UnimplementedOptimizationServer) EC2InstanceOptimization(context.Context, *EC2InstanceOptimizationRequest) (*EC2InstanceOptimizationResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method EC2InstanceOptimization not implemented")
+}
+func (UnimplementedOptimizationServer) RDSInstanceOptimization(context.Context, *RDSInstanceOptimizationRequest) (*RDSInstanceOptimizationResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RDSInstanceOptimization not implemented")
+}
+func (UnimplementedOptimizationServer) RDSClusterOptimization(context.Context, *RDSClusterOptimizationRequest) (*RDSClusterOptimizationResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RDSClusterOptimization not implemented")
 }
 func (UnimplementedOptimizationServer) mustEmbedUnimplementedOptimizationServer() {}
 
@@ -92,6 +122,42 @@ func _Optimization_EC2InstanceOptimization_Handler(srv interface{}, ctx context.
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Optimization_RDSInstanceOptimization_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RDSInstanceOptimizationRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(OptimizationServer).RDSInstanceOptimization(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Optimization_RDSInstanceOptimization_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(OptimizationServer).RDSInstanceOptimization(ctx, req.(*RDSInstanceOptimizationRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Optimization_RDSClusterOptimization_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RDSClusterOptimizationRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(OptimizationServer).RDSClusterOptimization(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Optimization_RDSClusterOptimization_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(OptimizationServer).RDSClusterOptimization(ctx, req.(*RDSClusterOptimizationRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Optimization_ServiceDesc is the grpc.ServiceDesc for Optimization service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -102,6 +168,14 @@ var Optimization_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "EC2InstanceOptimization",
 			Handler:    _Optimization_EC2InstanceOptimization_Handler,
+		},
+		{
+			MethodName: "RDSInstanceOptimization",
+			Handler:    _Optimization_RDSInstanceOptimization_Handler,
+		},
+		{
+			MethodName: "RDSClusterOptimization",
+			Handler:    _Optimization_RDSClusterOptimization_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
