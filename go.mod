@@ -11,15 +11,19 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/organizations v1.27.3
 	github.com/aws/aws-sdk-go-v2/service/rds v1.78.0
 	github.com/aws/aws-sdk-go-v2/service/sts v1.28.6
+	github.com/golang/protobuf v1.5.4
 	github.com/google/uuid v1.6.0
 	github.com/kaytu-io/kaytu v0.14.3
 	github.com/stretchr/testify v1.9.0
 	golang.org/x/net v0.26.0
+	golang.org/x/oauth2 v0.20.0
+	google.golang.org/grpc v1.64.0
 	google.golang.org/grpc v1.64.0
 	google.golang.org/protobuf v1.34.2
 )
 
 require (
+	cloud.google.com/go/compute/metadata v0.3.0 // indirect
 	dario.cat/mergo v1.0.0 // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
 	github.com/ProtonMail/go-crypto v1.0.0 // indirect
@@ -90,7 +94,6 @@ require (
 	github.com/zclconf/go-cty v1.14.4 // indirect
 	golang.org/x/crypto v0.24.0 // indirect
 	golang.org/x/mod v0.17.0 // indirect
-	golang.org/x/oauth2 v0.20.0 // indirect
 	golang.org/x/sync v0.7.0 // indirect
 	golang.org/x/sys v0.21.0 // indirect
 	golang.org/x/term v0.21.0 // indirect

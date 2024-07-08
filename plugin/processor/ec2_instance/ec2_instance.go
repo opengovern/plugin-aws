@@ -10,6 +10,8 @@ import (
 	"github.com/kaytu-io/kaytu/pkg/utils"
 	aws2 "github.com/kaytu-io/plugin-aws/plugin/aws"
 	kaytu2 "github.com/kaytu-io/plugin-aws/plugin/kaytu"
+	"github.com/kaytu-io/plugin-aws/plugin/processor/shared"
+	golang2 "github.com/kaytu-io/plugin-aws/plugin/proto/src/golang"
 	"strings"
 	"sync/atomic"
 )
@@ -27,6 +29,7 @@ type Processor struct {
 	lazyloadCounter         atomic.Uint32
 	observabilityDays       int
 	defaultPreferences      []*golang.PreferenceItem
+	client                  golang2.OptimizationClient
 
 	summary utils.ConcurrentMap[string, EC2InstanceSummary]
 }
@@ -42,6 +45,7 @@ func NewProcessor(
 	configurations *kaytu2.Configuration,
 	observabilityDays int,
 	defaultPreferences []*golang.PreferenceItem,
+	client golang2.OptimizationClient,
 ) *Processor {
 	r := &Processor{
 		provider:                prv,
@@ -55,6 +59,7 @@ func NewProcessor(
 		configuration:           configurations,
 		observabilityDays:       observabilityDays,
 		defaultPreferences:      defaultPreferences,
+		client:                  client,
 
 		lazyloadCounter: atomic.Uint32{},
 
@@ -115,8 +120,8 @@ func (m *Processor) exportCsv() []*golang.CSVRow {
 				fmt.Sprintf("Instance Size:: Current: %s - Recommended: %s", i.Wastage.RightSizing.Current.InstanceType,
 					i.Wastage.RightSizing.Recommended.InstanceType))
 			additionalDetails = append(additionalDetails,
-				fmt.Sprintf("vCPU:: Current: %d - Avg: %s - Recommended: %d", i.Wastage.RightSizing.Current.VCPU,
-					utils.Percentage(i.Wastage.RightSizing.VCPU.Avg), i.Wastage.RightSizing.Recommended.VCPU))
+				fmt.Sprintf("vCPU:: Current: %d - Avg: %s - Recommended: %d", i.Wastage.RightSizing.Current.Vcpu,
+					utils.Percentage(shared.WrappedToFloat64(i.Wastage.RightSizing.Vcpu.Avg)), i.Wastage.RightSizing.Recommended.Vcpu))
 			additionalDetails = append(additionalDetails,
 				fmt.Sprintf("Processor(s):: Current: %s - Recommended: %s", i.Wastage.RightSizing.Current.Processor,
 					i.Wastage.RightSizing.Recommended.Processor))
@@ -128,15 +133,15 @@ func (m *Processor) exportCsv() []*golang.CSVRow {
 					i.Wastage.RightSizing.Recommended.LicensePrice))
 			additionalDetails = append(additionalDetails,
 				fmt.Sprintf("Memory:: Current: %.1f GB - Avg: %s - Recommended: %.1f GB", i.Wastage.RightSizing.Current.Memory,
-					utils.Percentage(i.Wastage.RightSizing.Memory.Avg), i.Wastage.RightSizing.Recommended.Memory))
+					utils.Percentage(shared.WrappedToFloat64(i.Wastage.RightSizing.Memory.Avg)), i.Wastage.RightSizing.Recommended.Memory))
 			additionalDetails = append(additionalDetails,
-				fmt.Sprintf("EBS Bandwidth:: Current: %s - Avg: %s - Recommended: %s", i.Wastage.RightSizing.Current.EBSBandwidth,
-					PNetworkThroughputMBps(i.Wastage.RightSizing.EBSBandwidth.Avg), i.Wastage.RightSizing.Recommended.EBSBandwidth))
+				fmt.Sprintf("EBS Bandwidth:: Current: %s - Avg: %s - Recommended: %s", i.Wastage.RightSizing.Current.EbsBandwidth,
+					PNetworkThroughputMBps(shared.WrappedToFloat64(i.Wastage.RightSizing.EbsBandwidth.Avg)), i.Wastage.RightSizing.Recommended.EbsBandwidth))
 			additionalDetails = append(additionalDetails,
-				fmt.Sprintf("EBS IOPS:: Current: %s - Avg: %s io/s - Recommended: %s", i.Wastage.RightSizing.Current.EBSIops,
-					utils.PFloat64ToString(i.Wastage.RightSizing.EBSIops.Avg), i.Wastage.RightSizing.Recommended.EBSIops))
+				fmt.Sprintf("EBS IOPS:: Current: %s - Avg: %s io/s - Recommended: %s", i.Wastage.RightSizing.Current.EbsIops,
+					utils.PFloat64ToString(shared.WrappedToFloat64(i.Wastage.RightSizing.EbsIops.Avg)), i.Wastage.RightSizing.Recommended.EbsIops))
 
-			enaSupportChange := i.Wastage.RightSizing.Current.ENASupported != i.Wastage.RightSizing.Recommended.ENASupported
+			enaSupportChange := i.Wastage.RightSizing.Current.EnaSupported != i.Wastage.RightSizing.Recommended.EnaSupported
 			additionalDetails = append(additionalDetails,
 				fmt.Sprintf("ENASupportChangeInInstanceType:: %v", enaSupportChange))
 
@@ -170,7 +175,7 @@ func (m *Processor) exportCsv() []*golang.CSVRow {
 			if vs.Recommended != nil {
 				ebsRightSizingCost = utils.FormatPriceFloat(vs.Recommended.Cost)
 				ebsSaving = utils.FormatPriceFloat(vs.Current.Cost - vs.Recommended.Cost)
-				ebsRecSpec = fmt.Sprintf("%s/%s/%d IOPS", vs.Recommended.Tier, utils.SizeByteToGB(vs.Recommended.VolumeSize), vs.Recommended.IOPS())
+				ebsRecSpec = fmt.Sprintf("%s/%s/%d IOPS", vs.Recommended.Tier, utils.SizeByteToGB(shared.WrappedToInt32(vs.Recommended.VolumeSize)), getRightsizingEBSVolumeIOPS(vs.Recommended))
 
 				ebsAdditionalDetails = append(ebsAdditionalDetails,
 					fmt.Sprintf("EBS Storage Tier:: Current: %s - Recommended: %s", vs.Current.Tier,
@@ -179,32 +184,32 @@ func (m *Processor) exportCsv() []*golang.CSVRow {
 					fmt.Sprintf("Volume Size (GB):: Current: %d - Recommended: %d", *vs.Current.VolumeSize,
 						*vs.Recommended.VolumeSize))
 				ebsAdditionalDetails = append(ebsAdditionalDetails,
-					fmt.Sprintf("IOPS:: Current: %d - Avg: %s - Recommended: %d", vs.Current.IOPS(),
-						utils.PFloat64ToString(vs.IOPS.Avg), vs.Recommended.IOPS()))
+					fmt.Sprintf("IOPS:: Current: %d - Avg: %s - Recommended: %d", getRightsizingEBSVolumeIOPS(vs.Current),
+						utils.PFloat64ToString(shared.WrappedToFloat64(vs.Iops.Avg)), getRightsizingEBSVolumeIOPS(vs.Recommended)))
 				ebsAdditionalDetails = append(ebsAdditionalDetails,
-					fmt.Sprintf("Baseline IOPS:: Current: %d - Recommended: %d", vs.Current.BaselineIOPS,
-						vs.Recommended.BaselineIOPS))
+					fmt.Sprintf("Baseline IOPS:: Current: %d - Recommended: %d", vs.Current.BaselineIops,
+						vs.Recommended.BaselineIops))
 				ebsAdditionalDetails = append(ebsAdditionalDetails,
-					fmt.Sprintf("Provisioned IOPS:: Current: %s - Recommended: %s", utils.PInt32ToString(vs.Current.ProvisionedIOPS),
-						utils.PInt32ToString(vs.Recommended.ProvisionedIOPS)))
+					fmt.Sprintf("Provisioned IOPS:: Current: %s - Recommended: %s", utils.PInt32ToString(shared.WrappedToInt32(vs.Current.ProvisionedIops)),
+						utils.PInt32ToString(shared.WrappedToInt32(vs.Recommended.ProvisionedIops))))
 				ebsAdditionalDetails = append(ebsAdditionalDetails,
-					fmt.Sprintf("Throughput (MB/s):: Current: %.2f GB - Avg: %s - Recommended: %.2f GB", vs.Current.Throughput(),
-						PNetworkThroughputMBps(vs.Throughput.Avg), vs.Recommended.Throughput()))
+					fmt.Sprintf("Throughput (MB/s):: Current: %.2f GB - Avg: %s - Recommended: %.2f GB", getRightsizingEBSVolumeThroughput(vs.Current),
+						PNetworkThroughputMBps(shared.WrappedToFloat64(vs.Throughput.Avg)), getRightsizingEBSVolumeThroughput(vs.Recommended)))
 				ebsAdditionalDetails = append(ebsAdditionalDetails,
 					fmt.Sprintf("Baseline Throughput:: Current: %s - Recommended: %s", PNetworkThroughputMBps(&vs.Current.BaselineThroughput),
 						PNetworkThroughputMBps(&vs.Recommended.BaselineThroughput)))
 				ebsAdditionalDetails = append(ebsAdditionalDetails,
-					fmt.Sprintf("Provisioned Throughput:: Current: %s - Recommended: %s", PNetworkThroughputMBps(vs.Current.ProvisionedThroughput),
-						PNetworkThroughputMBps(vs.Recommended.ProvisionedThroughput)))
+					fmt.Sprintf("Provisioned Throughput:: Current: %s - Recommended: %s", PNetworkThroughputMBps(shared.WrappedToFloat64(vs.Current.ProvisionedThroughput)),
+						PNetworkThroughputMBps(shared.WrappedToFloat64(vs.Recommended.ProvisionedThroughput))))
 				ebsAdditionalDetails = append(ebsAdditionalDetails,
 					fmt.Sprintf("VolumeTypeChange:: %v", vs.Current.Tier != vs.Recommended.Tier))
 				ebsAdditionalDetails = append(ebsAdditionalDetails,
-					fmt.Sprintf("VolumeSizeChange:: %v", *vs.Current.VolumeSize != *vs.Recommended.VolumeSize))
+					fmt.Sprintf("VolumeSizeChange:: %v", vs.Current.VolumeSize.GetValue() != vs.Recommended.VolumeSize.GetValue()))
 			}
 
 			vRow := []string{m.identification["account"], i.Region, "EBS Volume", *v.VolumeId, vName, "N/A",
 				"730 hours", utils.FormatPriceFloat(vs.Current.Cost), ebsRightSizingCost, ebsSaving,
-				fmt.Sprintf("%s/%s/%d IOPS", vs.Current.Tier, utils.SizeByteToGB(vs.Current.VolumeSize), vs.Current.IOPS()),
+				fmt.Sprintf("%s/%s/%d IOPS", vs.Current.Tier, utils.SizeByteToGB(shared.WrappedToInt32(vs.Current.VolumeSize)), getRightsizingEBSVolumeIOPS(vs.Current)),
 				ebsRecSpec, *i.Instance.InstanceId, i.Wastage.RightSizing.Description, strings.Join(ebsAdditionalDetails, "---")}
 			rows = append(rows, &golang.CSVRow{Row: vRow})
 		}
@@ -214,19 +219,19 @@ func (m *Processor) exportCsv() []*golang.CSVRow {
 	return rows
 }
 
-func toEBSVolume(v types.Volume) kaytu2.EC2Volume {
+func toEBSVolume(v types.Volume) *golang2.EC2Volume {
 	var throughput *float64
 	if v.Throughput != nil {
 		throughput = aws.Float64(float64(*v.Throughput))
 	}
 
-	return kaytu2.EC2Volume{
+	return &golang2.EC2Volume{
 		HashedVolumeId:   utils.HashString(*v.VolumeId),
-		VolumeType:       v.VolumeType,
-		Size:             v.Size,
-		Iops:             v.Iops,
-		AvailabilityZone: v.AvailabilityZone,
-		Throughput:       throughput,
+		VolumeType:       string(v.VolumeType),
+		Size:             shared.Int32ToWrapper(v.Size),
+		Iops:             shared.Int32ToWrapper(v.Iops),
+		AvailabilityZone: shared.StringToWrapper(v.AvailabilityZone),
+		Throughput:       shared.Float64ToWrapper(throughput),
 	}
 }
 
@@ -246,7 +251,7 @@ func (m *Processor) ResultsSummary() *golang.ResultSummary {
 
 func (m *Processor) UpdateSummary(itemId string) {
 	i, ok := m.items.Get(itemId)
-	if ok && i.Wastage.RightSizing.Recommended != nil {
+	if ok && i.Wastage != nil && i.Wastage.RightSizing != nil && i.Wastage.RightSizing.Recommended != nil {
 		totalSaving := 0.0
 		totalCurrentCost := 0.0
 		for _, v := range i.Wastage.VolumeRightSizing {
