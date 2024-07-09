@@ -288,6 +288,10 @@ func (c RDSClusterItem) RDSInstanceDevice() ([]*golang.ChartRow, map[string]*gol
 			Key: "Cost Components",
 		})
 		storageProps.Properties = append(storageProps.Properties, storageCostComponentProperties...)
+		storageProps.Properties = append(storageProps.Properties, &golang.Property{
+			Key:         "Description",
+			Recommended: strings.TrimSpace(c.Wastage.RightSizing[hashedId].Description),
+		})
 
 		deviceProps[fmt.Sprintf("%s-compute", *i.DBInstanceIdentifier)] = computeProps
 		deviceProps[fmt.Sprintf("%s-storage", *i.DBInstanceIdentifier)] = storageProps
