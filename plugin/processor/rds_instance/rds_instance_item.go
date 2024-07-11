@@ -6,7 +6,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/rds/types"
 	"github.com/kaytu-io/kaytu/pkg/plugin/proto/src/golang"
 	"github.com/kaytu-io/kaytu/pkg/utils"
-	"github.com/kaytu-io/plugin-aws/plugin/kaytu"
+	"github.com/kaytu-io/plugin-aws/plugin/processor/shared"
+	golang2 "github.com/kaytu-io/plugin-aws/plugin/proto/src/golang"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 	"sort"
 	"strings"
@@ -23,7 +24,7 @@ type RDSInstanceItem struct {
 	SkipReason          string
 
 	Metrics map[string][]types2.Datapoint
-	Wastage kaytu.AwsRdsWastageResponse
+	Wastage *golang2.RDSInstanceOptimizationResponse
 }
 
 func (i RDSInstanceItem) RDSInstanceDevice() ([]*golang.ChartRow, map[string]*golang.Properties) {
@@ -93,9 +94,9 @@ func (i RDSInstanceItem) RDSInstanceDevice() ([]*golang.ChartRow, map[string]*go
 	}
 	vCPUProperty := &golang.Property{
 		Key:     "vCPU",
-		Current: fmt.Sprintf("%d", i.Wastage.RightSizing.Current.VCPU),
-		Average: utils.Percentage(i.Wastage.RightSizing.VCPU.Avg),
-		Max:     utils.Percentage(i.Wastage.RightSizing.VCPU.Max),
+		Current: fmt.Sprintf("%d", i.Wastage.RightSizing.Current.Vcpu),
+		Average: utils.Percentage(shared.WrappedToFloat64(i.Wastage.RightSizing.Vcpu.Avg)),
+		Max:     utils.Percentage(shared.WrappedToFloat64(i.Wastage.RightSizing.Vcpu.Max)),
 	}
 	processorProperty := &golang.Property{
 		Key:     "Processor(s)",
@@ -108,29 +109,29 @@ func (i RDSInstanceItem) RDSInstanceDevice() ([]*golang.ChartRow, map[string]*go
 	memoryProperty := &golang.Property{
 		Key:     "Memory",
 		Current: fmt.Sprintf("%d GiB", i.Wastage.RightSizing.Current.MemoryGb),
-		Average: utils.MemoryUsagePercentageByFreeSpace(i.Wastage.RightSizing.FreeMemoryBytes.Avg, float64(i.Wastage.RightSizing.Current.MemoryGb)),
+		Average: utils.MemoryUsagePercentageByFreeSpace(shared.WrappedToFloat64(i.Wastage.RightSizing.FreeMemoryBytes.Avg), float64(i.Wastage.RightSizing.Current.MemoryGb)),
 	}
 	storageTypeProperty := &golang.Property{
 		Key:     "Type",
-		Current: utils.PString(i.Wastage.RightSizing.Current.StorageType),
+		Current: utils.PString(shared.WrappedToString(i.Wastage.RightSizing.Current.StorageType)),
 	}
 	storageSizeProperty := &golang.Property{
 		Key:     "Size",
-		Current: utils.SizeByteToGB(i.Wastage.RightSizing.Current.StorageSize),
-		Average: utils.StorageUsagePercentageByFreeSpace(i.Wastage.RightSizing.FreeStorageBytes.Avg, i.Wastage.RightSizing.Current.StorageSize),
-		Max:     utils.StorageUsagePercentageByFreeSpace(i.Wastage.RightSizing.FreeStorageBytes.Min, i.Wastage.RightSizing.Current.StorageSize),
+		Current: utils.SizeByteToGB(shared.WrappedToInt32(i.Wastage.RightSizing.Current.StorageSize)),
+		Average: utils.StorageUsagePercentageByFreeSpace(shared.WrappedToFloat64(i.Wastage.RightSizing.FreeStorageBytes.Avg), shared.WrappedToInt32(i.Wastage.RightSizing.Current.StorageSize)),
+		Max:     utils.StorageUsagePercentageByFreeSpace(shared.WrappedToFloat64(i.Wastage.RightSizing.FreeStorageBytes.Min), shared.WrappedToInt32(i.Wastage.RightSizing.Current.StorageSize)),
 	}
 	if strings.Contains(strings.ToLower(i.Wastage.RightSizing.Current.Engine), "aurora") {
-		avgPercentage := (*i.Wastage.RightSizing.VolumeBytesUsed.Avg / (1024.0 * 1024.0 * 1024.0)) / float64(*i.Wastage.RightSizing.Current.StorageSize) * 100
-		maxPercentage := (*i.Wastage.RightSizing.VolumeBytesUsed.Max / (1024.0 * 1024.0 * 1024.0)) / float64(*i.Wastage.RightSizing.Current.StorageSize) * 100
+		avgPercentage := (*shared.WrappedToFloat64(i.Wastage.RightSizing.VolumeBytesUsed.Avg) / (1024.0 * 1024.0 * 1024.0)) / float64(*shared.WrappedToInt32(i.Wastage.RightSizing.Current.StorageSize)) * 100
+		maxPercentage := (*shared.WrappedToFloat64(i.Wastage.RightSizing.VolumeBytesUsed.Max) / (1024.0 * 1024.0 * 1024.0)) / float64(*shared.WrappedToInt32(i.Wastage.RightSizing.Current.StorageSize)) * 100
 		storageSizeProperty.Average = utils.Percentage(&avgPercentage)
 		storageSizeProperty.Max = utils.Percentage(&maxPercentage)
 	}
 	storageIOPSProperty := &golang.Property{
 		Key:     "IOPS",
-		Current: utils.PInt32ToString(i.Wastage.RightSizing.Current.StorageIops),
-		Average: fmt.Sprintf("%s io/s", utils.PFloat64ToString(i.Wastage.RightSizing.StorageIops.Avg)),
-		Max:     fmt.Sprintf("%s io/s", utils.PFloat64ToString(i.Wastage.RightSizing.StorageIops.Max)),
+		Current: utils.PInt32ToString(shared.WrappedToInt32(i.Wastage.RightSizing.Current.StorageIops)),
+		Average: fmt.Sprintf("%s io/s", utils.PFloat64ToString(shared.WrappedToFloat64(i.Wastage.RightSizing.StorageIops.Avg))),
+		Max:     fmt.Sprintf("%s io/s", utils.PFloat64ToString(shared.WrappedToFloat64(i.Wastage.RightSizing.StorageIops.Max))),
 	}
 	if storageIOPSProperty.Current != "" {
 		storageIOPSProperty.Current = fmt.Sprintf("%s io/s", storageIOPSProperty.Current)
@@ -145,14 +146,14 @@ func (i RDSInstanceItem) RDSInstanceDevice() ([]*golang.ChartRow, map[string]*go
 	}
 	// current number is in MB/s, so we need to convert it to bytes/s so matches the other values
 	if i.Wastage.RightSizing.Current.StorageThroughput != nil {
-		v := *i.Wastage.RightSizing.Current.StorageThroughput * 1024.0 * 1024.0
-		i.Wastage.RightSizing.Current.StorageThroughput = &v
+		v := *shared.WrappedToFloat64(i.Wastage.RightSizing.Current.StorageThroughput) * 1024.0 * 1024.0
+		i.Wastage.RightSizing.Current.StorageThroughput = shared.Float64ToWrapper(&v)
 	}
 	storageThroughputProperty := &golang.Property{
 		Key:     "Throughput",
-		Current: utils.PStorageThroughputMbps(i.Wastage.RightSizing.Current.StorageThroughput),
-		Average: utils.PStorageThroughputMbps(i.Wastage.RightSizing.StorageThroughput.Avg),
-		Max:     utils.PStorageThroughputMbps(i.Wastage.RightSizing.StorageThroughput.Max),
+		Current: utils.PStorageThroughputMbps(shared.WrappedToFloat64(i.Wastage.RightSizing.Current.StorageThroughput)),
+		Average: utils.PStorageThroughputMbps(shared.WrappedToFloat64(i.Wastage.RightSizing.StorageThroughput.Avg)),
+		Max:     utils.PStorageThroughputMbps(shared.WrappedToFloat64(i.Wastage.RightSizing.StorageThroughput.Max)),
 	}
 	runtimeProperty := &golang.Property{
 		Key:     "RuntimeHours",
@@ -195,11 +196,11 @@ func (i RDSInstanceItem) RDSInstanceDevice() ([]*golang.ChartRow, map[string]*go
 		engineProperty.Recommended = i.Wastage.RightSizing.Recommended.Engine
 		engineVerProperty.Recommended = i.Wastage.RightSizing.Recommended.EngineVersion
 		clusterTypeProperty.Recommended = string(i.Wastage.RightSizing.Recommended.ClusterType)
-		vCPUProperty.Recommended = fmt.Sprintf("%d", i.Wastage.RightSizing.Recommended.VCPU)
+		vCPUProperty.Recommended = fmt.Sprintf("%d", i.Wastage.RightSizing.Recommended.Vcpu)
 		memoryProperty.Recommended = fmt.Sprintf("%d GiB", i.Wastage.RightSizing.Recommended.MemoryGb)
-		storageTypeProperty.Recommended = utils.PString(i.Wastage.RightSizing.Recommended.StorageType)
-		storageSizeProperty.Recommended = utils.SizeByteToGB(i.Wastage.RightSizing.Recommended.StorageSize)
-		storageIOPSProperty.Recommended = utils.PInt32ToString(i.Wastage.RightSizing.Recommended.StorageIops)
+		storageTypeProperty.Recommended = utils.PString(shared.WrappedToString(i.Wastage.RightSizing.Recommended.StorageType))
+		storageSizeProperty.Recommended = utils.SizeByteToGB(shared.WrappedToInt32(i.Wastage.RightSizing.Recommended.StorageSize))
+		storageIOPSProperty.Recommended = utils.PInt32ToString(shared.WrappedToInt32(i.Wastage.RightSizing.Recommended.StorageIops))
 		if storageIOPSProperty.Recommended != "" {
 			storageIOPSProperty.Recommended = fmt.Sprintf("%s io/s", storageIOPSProperty.Recommended)
 		} else {
@@ -207,10 +208,10 @@ func (i RDSInstanceItem) RDSInstanceDevice() ([]*golang.ChartRow, map[string]*go
 		}
 		// Recommended number is in MB/s, so we need to convert it to bytes/s so matches the other values
 		if i.Wastage.RightSizing.Recommended.StorageThroughput != nil {
-			v := *i.Wastage.RightSizing.Recommended.StorageThroughput * 1024.0 * 1024.0
-			i.Wastage.RightSizing.Recommended.StorageThroughput = &v
+			v := *shared.WrappedToFloat64(i.Wastage.RightSizing.Recommended.StorageThroughput) * 1024.0 * 1024.0
+			i.Wastage.RightSizing.Recommended.StorageThroughput = shared.Float64ToWrapper(&v)
 		}
-		storageThroughputProperty.Recommended = utils.PStorageThroughputMbps(i.Wastage.RightSizing.Recommended.StorageThroughput)
+		storageThroughputProperty.Recommended = utils.PStorageThroughputMbps(shared.WrappedToFloat64(i.Wastage.RightSizing.Recommended.StorageThroughput))
 
 		for k, v := range i.Wastage.RightSizing.Recommended.ComputeCostComponents {
 			if _, ok := computeCostComponentPropertiesMap[k]; !ok {
@@ -298,6 +299,9 @@ func (i RDSInstanceItem) RDSInstanceDevice() ([]*golang.ChartRow, map[string]*go
 }
 
 func (i RDSInstanceItem) Devices() ([]*golang.ChartRow, map[string]*golang.Properties) {
+	if i.Wastage == nil {
+		return nil, nil
+	}
 	return i.RDSInstanceDevice()
 }
 
@@ -356,7 +360,6 @@ func (i RDSInstanceItem) ToOptimizationItem() *golang.ChartOptimizationItem {
 		DevicesChartRows:   deviceRows,
 		DevicesProperties:  deviceProps,
 		Preferences:        i.Preferences,
-		Description:        i.Wastage.RightSizing.Description,
 		Loading:            i.OptimizationLoading,
 		Skipped:            i.Skipped,
 		SkipReason:         nil,
@@ -364,6 +367,9 @@ func (i RDSInstanceItem) ToOptimizationItem() *golang.ChartOptimizationItem {
 	}
 	if i.SkipReason != "" {
 		oi.SkipReason = &wrapperspb.StringValue{Value: i.SkipReason}
+	}
+	if i.Wastage != nil && i.Wastage.RightSizing != nil {
+		oi.Description = i.Wastage.RightSizing.Description
 	}
 
 	return oi

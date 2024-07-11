@@ -273,6 +273,7 @@ func (p *AWSPlugin) StartProcess(ctx context.Context, command string, flags map[
 			configurations,
 			observabilityDays,
 			preferences,
+			client,
 		)
 	} else {
 		return fmt.Errorf("invalid command: %s", command)

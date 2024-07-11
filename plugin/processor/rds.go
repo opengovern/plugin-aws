@@ -9,6 +9,7 @@ import (
 	"github.com/kaytu-io/plugin-aws/plugin/processor/ec2_instance"
 	"github.com/kaytu-io/plugin-aws/plugin/processor/rds_cluster"
 	"github.com/kaytu-io/plugin-aws/plugin/processor/rds_instance"
+	golang2 "github.com/kaytu-io/plugin-aws/plugin/proto/src/golang"
 	"sync/atomic"
 )
 
@@ -17,12 +18,12 @@ type RDSProcessor struct {
 	rdsClusterProcessor  *rds_cluster.Processor
 }
 
-func NewRDSProcessor(provider *aws.AWS, metricProvider *aws.CloudWatch, identification map[string]string, publishOptimizationItem func(item *golang.ChartOptimizationItem), publishResultSummary func(summary *golang.ResultSummary), kaytuAcccessToken string, jobQueue *sdk.JobQueue, configurations *kaytu.Configuration, observabilityDays int, preferences []*golang.PreferenceItem) *RDSProcessor {
+func NewRDSProcessor(provider *aws.AWS, metricProvider *aws.CloudWatch, identification map[string]string, publishOptimizationItem func(item *golang.ChartOptimizationItem), publishResultSummary func(summary *golang.ResultSummary), kaytuAcccessToken string, jobQueue *sdk.JobQueue, configurations *kaytu.Configuration, observabilityDays int, preferences []*golang.PreferenceItem, client golang2.OptimizationClient) *RDSProcessor {
 	lazyloadCounter := atomic.Uint32{}
 	summary := utils.NewConcurrentMap[string, ec2_instance.EC2InstanceSummary]()
 	return &RDSProcessor{
-		rdsInstanceProcessor: rds_instance.NewProcessor(provider, metricProvider, identification, publishOptimizationItem, publishResultSummary, kaytuAcccessToken, jobQueue, configurations, &lazyloadCounter, observabilityDays, &summary, preferences),
-		rdsClusterProcessor:  rds_cluster.NewProcessor(provider, metricProvider, identification, publishOptimizationItem, publishResultSummary, kaytuAcccessToken, jobQueue, configurations, &lazyloadCounter, observabilityDays, &summary, preferences),
+		rdsInstanceProcessor: rds_instance.NewProcessor(provider, metricProvider, identification, publishOptimizationItem, publishResultSummary, kaytuAcccessToken, jobQueue, configurations, &lazyloadCounter, observabilityDays, &summary, preferences, client),
+		rdsClusterProcessor:  rds_cluster.NewProcessor(provider, metricProvider, identification, publishOptimizationItem, publishResultSummary, kaytuAcccessToken, jobQueue, configurations, &lazyloadCounter, observabilityDays, &summary, preferences, client),
 	}
 }
 

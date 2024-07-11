@@ -9,7 +9,11 @@ import (
 	"github.com/kaytu-io/kaytu/pkg/utils"
 	"github.com/kaytu-io/kaytu/preferences"
 	"github.com/kaytu-io/plugin-aws/plugin/kaytu"
+	"github.com/kaytu-io/plugin-aws/plugin/processor/shared"
+	golang2 "github.com/kaytu-io/plugin-aws/plugin/proto/src/golang"
 	"github.com/kaytu-io/plugin-aws/plugin/version"
+	"google.golang.org/grpc/metadata"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 type OptimizeRDSClusterJob struct {
@@ -39,7 +43,7 @@ func (j *OptimizeRDSClusterJob) Run(ctx context.Context) error {
 	}
 
 	reqID := uuid.New().String()
-	var instances []kaytu.AwsRds
+	var instances []*golang2.RDSInstance
 	for _, i := range j.item.Instances {
 		var clusterType kaytu.AwsRdsClusterType
 		multiAZ := i.MultiAZ != nil && *i.MultiAZ
@@ -52,44 +56,78 @@ func (j *OptimizeRDSClusterJob) Run(ctx context.Context) error {
 			clusterType = kaytu.AwsRdsClusterTypeSingleInstance
 		}
 
-		rdsInstance := kaytu.AwsRds{
+		rdsInstance := golang2.RDSInstance{
 			HashedInstanceId:                   utils.HashString(*i.DBInstanceIdentifier),
 			AvailabilityZone:                   *i.AvailabilityZone,
 			InstanceType:                       *i.DBInstanceClass,
 			Engine:                             *i.Engine,
 			EngineVersion:                      *i.EngineVersion,
 			LicenseModel:                       *i.LicenseModel,
-			BackupRetentionPeriod:              i.BackupRetentionPeriod,
-			ClusterType:                        clusterType,
+			BackupRetentionPeriod:              shared.Int32ToWrapper(i.BackupRetentionPeriod),
+			ClusterType:                        string(clusterType),
 			PerformanceInsightsEnabled:         *i.PerformanceInsightsEnabled,
-			PerformanceInsightsRetentionPeriod: i.PerformanceInsightsRetentionPeriod,
-			StorageType:                        i.StorageType,
-			StorageSize:                        i.AllocatedStorage,
-			StorageIops:                        i.Iops,
+			PerformanceInsightsRetentionPeriod: shared.Int32ToWrapper(i.PerformanceInsightsRetentionPeriod),
+			StorageType:                        shared.StringToWrapper(i.StorageType),
+			StorageSize:                        shared.Int32ToWrapper(i.AllocatedStorage),
+			StorageIops:                        shared.Int32ToWrapper(i.Iops),
 		}
 		if i.StorageThroughput != nil {
 			floatThroughput := float64(*i.StorageThroughput)
-			rdsInstance.StorageThroughput = &floatThroughput
+			rdsInstance.StorageThroughput = shared.Float64ToWrapper(&floatThroughput)
 		}
 
-		instances = append(instances, rdsInstance)
+		instances = append(instances, &rdsInstance)
 	}
 
-	req := kaytu.AwsClusterWastageRequest{
-		RequestId:      &reqID,
-		CliVersion:     &version.VERSION,
+	preferencesMap := map[string]*wrapperspb.StringValue{}
+	for k, v := range preferences.Export(j.item.Preferences) {
+		preferencesMap[k] = nil
+		if v != nil {
+			preferencesMap[k] = wrapperspb.String(*v)
+		}
+	}
+
+	metrics := make(map[string]*golang2.RDSClusterMetrics)
+	for instance, m := range j.item.Metrics {
+		instanceMetrics := make(map[string]*golang2.Metric)
+		for k, v := range m {
+			var data []*golang2.Datapoint
+			for _, d := range v {
+				data = append(data, &golang2.Datapoint{
+					Average:     shared.Float64ToWrapper(d.Average),
+					Maximum:     shared.Float64ToWrapper(d.Maximum),
+					Minimum:     shared.Float64ToWrapper(d.Minimum),
+					SampleCount: shared.Float64ToWrapper(d.SampleCount),
+					Sum:         shared.Float64ToWrapper(d.Sum),
+					Timestamp:   shared.TimeToTimestamp(d.Timestamp),
+				})
+			}
+			instanceMetrics[k] = &golang2.Metric{
+				Metric: data,
+			}
+		}
+		metrics[instance] = &golang2.RDSClusterMetrics{
+			Metrics: instanceMetrics,
+		}
+	}
+
+	grpcCtx := metadata.NewOutgoingContext(ctx, metadata.Pairs("workspace-name", "kaytu"))
+	grpcCtx, cancel := context.WithTimeout(grpcCtx, shared.GrpcOptimizeRequestTimeout)
+	defer cancel()
+	res, err := j.processor.client.RDSClusterOptimization(grpcCtx, &golang2.RDSClusterOptimizationRequest{
+		RequestId:      wrapperspb.String(reqID),
+		CliVersion:     wrapperspb.String(version.VERSION),
 		Identification: j.processor.identification,
-		Cluster: kaytu.AwsRdsCluster{
+		Cluster: &golang2.RDSCluster{
 			HashedClusterId: utils.HashString(*j.item.Cluster.DBClusterIdentifier),
 			Engine:          *j.item.Cluster.Engine,
 		},
 		Instances:   instances,
-		Metrics:     j.item.Metrics,
+		Metrics:     metrics,
 		Region:      j.item.Region,
-		Preferences: preferences.Export(j.item.Preferences),
+		Preferences: preferencesMap,
 		Loading:     false,
-	}
-	res, err := kaytu.RDSClusterWastageRequest(ctx, req, j.processor.kaytuAcccessToken)
+	})
 	if err != nil {
 		return err
 	}
@@ -111,7 +149,7 @@ func (j *OptimizeRDSClusterJob) Run(ctx context.Context) error {
 		Skipped:             false,
 		SkipReason:          "",
 		Metrics:             j.item.Metrics,
-		Wastage:             *res,
+		Wastage:             res,
 	}
 	j.processor.items.Set(*j.item.Cluster.DBClusterIdentifier, j.item)
 	j.processor.publishOptimizationItem(j.item.ToOptimizationItem())
