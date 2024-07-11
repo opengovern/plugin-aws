@@ -216,7 +216,6 @@ func (i EC2InstanceItem) EBSVolumeDevice(v types.Volume, vs *golang2.EBSVolumeRe
 	if name == "" {
 		name = *v.VolumeId
 	}
-
 	row := golang.ChartRow{
 		RowId:  *v.VolumeId,
 		Values: make(map[string]*golang.ChartRowItem),
@@ -346,6 +345,11 @@ func (i EC2InstanceItem) EBSVolumeDevice(v types.Volume, vs *golang2.EBSVolumeRe
 		Key: "Cost Components",
 	})
 	properties.Properties = append(properties.Properties, costComponentProperties...)
+
+	properties.Properties = append(properties.Properties, &golang.Property{
+		Key:         "Description",
+		Recommended: vs.Description,
+	})
 
 	props[*v.VolumeId] = properties
 
