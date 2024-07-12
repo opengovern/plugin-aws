@@ -9,6 +9,8 @@ import (
 	"github.com/kaytu-io/plugin-aws/plugin/aws"
 	"github.com/kaytu-io/plugin-aws/plugin/kaytu"
 	"github.com/kaytu-io/plugin-aws/plugin/processor/ec2_instance"
+	"github.com/kaytu-io/plugin-aws/plugin/processor/shared"
+	golang2 "github.com/kaytu-io/plugin-aws/plugin/proto/src/golang"
 	"strings"
 	"sync/atomic"
 )
@@ -25,12 +27,13 @@ type Processor struct {
 	configuration           *kaytu.Configuration
 	lazyloadCounter         *atomic.Uint32
 	observabilityDays       int
+	client                  golang2.OptimizationClient
 
 	summary            *utils.ConcurrentMap[string, ec2_instance.EC2InstanceSummary]
 	defaultPreferences []*golang.PreferenceItem
 }
 
-func NewProcessor(provider *aws.AWS, metricProvider *aws.CloudWatch, identification map[string]string, publishOptimizationItem func(item *golang.ChartOptimizationItem), publishResultSummary func(summary *golang.ResultSummary), kaytuAcccessToken string, jobQueue *sdk.JobQueue, configurations *kaytu.Configuration, lazyloadCounter *atomic.Uint32, observabilityDays int, summary *utils.ConcurrentMap[string, ec2_instance.EC2InstanceSummary], preferences []*golang.PreferenceItem) *Processor {
+func NewProcessor(provider *aws.AWS, metricProvider *aws.CloudWatch, identification map[string]string, publishOptimizationItem func(item *golang.ChartOptimizationItem), publishResultSummary func(summary *golang.ResultSummary), kaytuAcccessToken string, jobQueue *sdk.JobQueue, configurations *kaytu.Configuration, lazyloadCounter *atomic.Uint32, observabilityDays int, summary *utils.ConcurrentMap[string, ec2_instance.EC2InstanceSummary], preferences []*golang.PreferenceItem, client golang2.OptimizationClient) *Processor {
 	r := &Processor{
 		provider:                provider,
 		metricProvider:          metricProvider,
@@ -43,6 +46,7 @@ func NewProcessor(provider *aws.AWS, metricProvider *aws.CloudWatch, identificat
 		configuration:           configurations,
 		lazyloadCounter:         lazyloadCounter,
 		observabilityDays:       observabilityDays,
+		client:                  client,
 		summary:                 summary,
 		defaultPreferences:      preferences,
 	}
@@ -99,8 +103,8 @@ func (m *Processor) ExportCsv() []*golang.CSVRow {
 					fmt.Sprintf("Cluster Type:: Current: %s - Recommended: %s", rightSizing.Current.ClusterType,
 						rightSizing.Recommended.ClusterType))
 				computeAdditionalDetails = append(computeAdditionalDetails,
-					fmt.Sprintf("vCPU:: Current: %d - Avg: %s - Recommended: %d", rightSizing.Current.VCPU,
-						utils.Percentage(rightSizing.VCPU.Avg), rightSizing.Recommended.VCPU))
+					fmt.Sprintf("vCPU:: Current: %d - Avg: %s - Recommended: %d", rightSizing.Current.Vcpu,
+						utils.Percentage(shared.WrappedToFloat64(rightSizing.Vcpu.Avg)), rightSizing.Recommended.Vcpu))
 				computeAdditionalDetails = append(computeAdditionalDetails,
 					fmt.Sprintf("Processor(s):: Current: %s - Recommended: %s", rightSizing.Current.Processor,
 						rightSizing.Recommended.Processor))
@@ -109,7 +113,7 @@ func (m *Processor) ExportCsv() []*golang.CSVRow {
 						rightSizing.Recommended.Architecture))
 				computeAdditionalDetails = append(computeAdditionalDetails,
 					fmt.Sprintf("Memory:: Current: %d GB - Avg: %s - Recommended: %d GB", rightSizing.Current.MemoryGb,
-						utils.MemoryUsagePercentageByFreeSpace(rightSizing.FreeMemoryBytes.Avg, float64(rightSizing.Current.MemoryGb)),
+						utils.MemoryUsagePercentageByFreeSpace(shared.WrappedToFloat64(rightSizing.FreeMemoryBytes.Avg), float64(rightSizing.Current.MemoryGb)),
 						rightSizing.Recommended.MemoryGb))
 			}
 			computeRow := []string{m.identification["account"], cluster.Region, "RDS Instance Compute", fmt.Sprintf("%s-compute", *i.DBInstanceIdentifier),
@@ -123,32 +127,32 @@ func (m *Processor) ExportCsv() []*golang.CSVRow {
 			if rightSizing.Recommended != nil {
 				storageRightSizingCost = utils.FormatPriceFloat(rightSizing.Recommended.StorageCost)
 				storageSaving = utils.FormatPriceFloat(rightSizing.Current.StorageCost - rightSizing.Recommended.StorageCost)
-				storageRecSpec = fmt.Sprintf("%s/%s/%s IOPS", *rightSizing.Recommended.StorageType,
-					utils.SizeByteToGB(rightSizing.Recommended.StorageSize), utils.PInt32ToString(rightSizing.Recommended.StorageIops))
+				storageRecSpec = fmt.Sprintf("%s/%s/%s IOPS", *shared.WrappedToString(rightSizing.Recommended.StorageType),
+					utils.SizeByteToGB(shared.WrappedToInt32(rightSizing.Recommended.StorageSize)), utils.PInt32ToString(shared.WrappedToInt32(rightSizing.Recommended.StorageIops)))
 
 				storageAdditionalDetails = append(storageAdditionalDetails,
-					fmt.Sprintf("Type:: Current: %s - Recommended: %s", utils.PString(rightSizing.Current.StorageType),
-						utils.PString(rightSizing.Recommended.StorageType)))
+					fmt.Sprintf("Type:: Current: %s - Recommended: %s", utils.PString(shared.WrappedToString(rightSizing.Current.StorageType)),
+						utils.PString(shared.WrappedToString(rightSizing.Recommended.StorageType))))
 				storageAdditionalDetails = append(storageAdditionalDetails,
-					fmt.Sprintf("Size:: Current: %s - Avg : %s - Recommended: %s", utils.SizeByteToGB(rightSizing.Current.StorageSize),
-						utils.StorageUsagePercentageByFreeSpace(rightSizing.FreeStorageBytes.Avg, rightSizing.Current.StorageSize),
-						utils.SizeByteToGB(rightSizing.Current.StorageSize)))
+					fmt.Sprintf("Size:: Current: %s - Avg : %s - Recommended: %s", utils.SizeByteToGB(shared.WrappedToInt32(rightSizing.Current.StorageSize)),
+						utils.StorageUsagePercentageByFreeSpace(shared.WrappedToFloat64(rightSizing.FreeStorageBytes.Avg), shared.WrappedToInt32(rightSizing.Current.StorageSize)),
+						utils.SizeByteToGB(shared.WrappedToInt32(rightSizing.Current.StorageSize))))
 				storageAdditionalDetails = append(storageAdditionalDetails,
-					fmt.Sprintf("IOPS:: Current: %s - Avg: %s - Recommended: %s", utils.PInt32ToString(rightSizing.Current.StorageIops),
-						fmt.Sprintf("%s io/s", utils.PFloat64ToString(rightSizing.StorageIops.Avg)),
-						utils.PInt32ToString(rightSizing.Recommended.StorageIops)))
+					fmt.Sprintf("IOPS:: Current: %s - Avg: %s - Recommended: %s", utils.PInt32ToString(shared.WrappedToInt32(rightSizing.Current.StorageIops)),
+						fmt.Sprintf("%s io/s", utils.PFloat64ToString(shared.WrappedToFloat64(rightSizing.StorageIops.Avg))),
+						utils.PInt32ToString(shared.WrappedToInt32(rightSizing.Recommended.StorageIops))))
 				storageAdditionalDetails = append(storageAdditionalDetails,
-					fmt.Sprintf("Throughput:: Current: %s - Avg: %s - Recommended: %s", utils.PStorageThroughputMbps(rightSizing.Current.StorageThroughput),
-						utils.PStorageThroughputMbps(rightSizing.StorageThroughput.Avg), utils.PStorageThroughputMbps(rightSizing.Recommended.StorageThroughput)))
+					fmt.Sprintf("Throughput:: Current: %s - Avg: %s - Recommended: %s", utils.PStorageThroughputMbps(shared.WrappedToFloat64(rightSizing.Current.StorageThroughput)),
+						utils.PStorageThroughputMbps(shared.WrappedToFloat64(rightSizing.StorageThroughput.Avg)), utils.PStorageThroughputMbps(shared.WrappedToFloat64(rightSizing.Recommended.StorageThroughput))))
 				storageAdditionalDetails = append(storageAdditionalDetails,
-					fmt.Sprintf("VolumeTypeChange:: %v", utils.PString(rightSizing.Current.StorageType) != utils.PString(rightSizing.Recommended.StorageType)))
+					fmt.Sprintf("VolumeTypeChange:: %v", utils.PString(shared.WrappedToString(rightSizing.Current.StorageType)) != utils.PString(shared.WrappedToString(rightSizing.Recommended.StorageType))))
 				storageAdditionalDetails = append(storageAdditionalDetails,
-					fmt.Sprintf("VolumeSizeChange:: %v", *rightSizing.Current.StorageSize != *rightSizing.Recommended.StorageSize))
+					fmt.Sprintf("VolumeSizeChange:: %v", *shared.WrappedToInt32(rightSizing.Current.StorageSize) != *shared.WrappedToInt32(rightSizing.Recommended.StorageSize)))
 			}
 			storageRow := []string{m.identification["account"], cluster.Region, "RDS Instance Storage", fmt.Sprintf("%s-storage", *i.DBInstanceIdentifier),
 				*i.DBInstanceIdentifier, "N/A", "730 hours", utils.FormatPriceFloat(rightSizing.Current.StorageCost),
-				storageRightSizingCost, storageSaving, fmt.Sprintf("%s/%s/%s IOPS", *rightSizing.Current.StorageType,
-					utils.SizeByteToGB(rightSizing.Current.StorageSize), utils.PInt32ToString(rightSizing.Current.StorageIops)), storageRecSpec, *i.DBInstanceIdentifier,
+				storageRightSizingCost, storageSaving, fmt.Sprintf("%s/%s/%s IOPS", *shared.WrappedToString(rightSizing.Current.StorageType),
+					utils.SizeByteToGB(shared.WrappedToInt32(rightSizing.Current.StorageSize)), utils.PInt32ToString(shared.WrappedToInt32(rightSizing.Current.StorageIops))), storageRecSpec, *i.DBInstanceIdentifier,
 				rightSizing.Description, strings.Join(storageAdditionalDetails, "---")}
 			rows = append(rows, &golang.CSVRow{Row: storageRow})
 		}
@@ -178,7 +182,7 @@ func (m *Processor) ResultsSummary() *golang.ResultSummary {
 
 func (m *Processor) UpdateSummary(itemId string) {
 	i, ok := m.items.Get(itemId)
-	if ok && i.Wastage.RightSizing != nil {
+	if ok && i.Wastage != nil && i.Wastage.RightSizing != nil {
 		totalSaving := 0.0
 		totalCurrentCost := 0.0
 

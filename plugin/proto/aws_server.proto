@@ -90,7 +90,6 @@ message RDSInstanceOptimizationRequest {
   map<string,string> identification = 3;
   RDSInstance instance = 4;
   map<string,Metric> metrics = 5;
-  map<string,VolumeMetrics> volume_metrics = 6;
   string region = 7;
   map<string,google.protobuf.StringValue> preferences = 8;
   bool loading = 9;

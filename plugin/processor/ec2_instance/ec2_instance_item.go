@@ -6,7 +6,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/kaytu-io/kaytu/pkg/plugin/proto/src/golang"
 	"github.com/kaytu-io/kaytu/pkg/utils"
-	"github.com/kaytu-io/plugin-aws/plugin/kaytu"
+	"github.com/kaytu-io/plugin-aws/plugin/processor/shared"
+	golang2 "github.com/kaytu-io/plugin-aws/plugin/proto/src/golang"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 	"sort"
 	"strings"
@@ -24,7 +25,7 @@ type EC2InstanceItem struct {
 	Volumes             []types.Volume
 	Metrics             map[string][]types2.Datapoint
 	VolumeMetrics       map[string]map[string][]types2.Datapoint
-	Wastage             kaytu.EC2InstanceWastageResponse
+	Wastage             *golang2.EC2InstanceOptimizationResponse
 }
 
 func (i EC2InstanceItem) EC2InstanceDevice() (*golang.ChartRow, map[string]*golang.Properties) {
@@ -72,9 +73,9 @@ func (i EC2InstanceItem) EC2InstanceDevice() (*golang.ChartRow, map[string]*gola
 	}
 	vCPUProperty := &golang.Property{
 		Key:     "  vCPU",
-		Current: fmt.Sprintf("%d", i.Wastage.RightSizing.Current.VCPU),
-		Average: utils.Percentage(i.Wastage.RightSizing.VCPU.Avg),
-		Max:     utils.Percentage(i.Wastage.RightSizing.VCPU.Max),
+		Current: fmt.Sprintf("%d", i.Wastage.RightSizing.Current.Vcpu),
+		Average: utils.Percentage(shared.WrappedToFloat64(i.Wastage.RightSizing.Vcpu.Avg)),
+		Max:     utils.Percentage(shared.WrappedToFloat64(i.Wastage.RightSizing.Vcpu.Max)),
 	}
 	processorProperty := &golang.Property{
 		Key:     "  Processor(s)",
@@ -91,37 +92,37 @@ func (i EC2InstanceItem) EC2InstanceDevice() (*golang.ChartRow, map[string]*gola
 	memoryProperty := &golang.Property{
 		Key:     "  Memory",
 		Current: fmt.Sprintf("%.1f GiB", i.Wastage.RightSizing.Current.Memory),
-		Average: utils.Percentage(i.Wastage.RightSizing.Memory.Avg),
-		Max:     utils.Percentage(i.Wastage.RightSizing.Memory.Max),
+		Average: utils.Percentage(shared.WrappedToFloat64(i.Wastage.RightSizing.Memory.Avg)),
+		Max:     utils.Percentage(shared.WrappedToFloat64(i.Wastage.RightSizing.Memory.Max)),
 	}
 	ebsProperty := &golang.Property{
 		Key:     "EBS Bandwidth",
-		Current: fmt.Sprintf("%s", i.Wastage.RightSizing.Current.EBSBandwidth),
-		Average: PNetworkThroughputMBps(i.Wastage.RightSizing.EBSBandwidth.Avg),
-		Max:     PNetworkThroughputMBps(i.Wastage.RightSizing.EBSBandwidth.Max),
+		Current: fmt.Sprintf("%s", i.Wastage.RightSizing.Current.EbsBandwidth),
+		Average: PNetworkThroughputMBps(shared.WrappedToFloat64(i.Wastage.RightSizing.EbsBandwidth.Avg)),
+		Max:     PNetworkThroughputMBps(shared.WrappedToFloat64(i.Wastage.RightSizing.EbsBandwidth.Max)),
 	}
 	iopsProperty := &golang.Property{
 		Key:     "EBS IOPS",
-		Current: fmt.Sprintf("%s", i.Wastage.RightSizing.Current.EBSIops),
-		Average: fmt.Sprintf("%s io/s", utils.PFloat64ToString(i.Wastage.RightSizing.EBSIops.Avg)),
-		Max:     fmt.Sprintf("%s io/s", utils.PFloat64ToString(i.Wastage.RightSizing.EBSIops.Max)),
+		Current: fmt.Sprintf("%s", i.Wastage.RightSizing.Current.EbsIops),
+		Average: fmt.Sprintf("%s io/s", utils.PFloat64ToString(shared.WrappedToFloat64(i.Wastage.RightSizing.EbsIops.Avg))),
+		Max:     fmt.Sprintf("%s io/s", utils.PFloat64ToString(shared.WrappedToFloat64(i.Wastage.RightSizing.EbsIops.Max))),
 	}
-	if i.Wastage.RightSizing.EBSIops.Avg == nil {
+	if i.Wastage.RightSizing.EbsIops.Avg == nil {
 		iopsProperty.Average = ""
 	}
-	if i.Wastage.RightSizing.EBSIops.Max == nil {
+	if i.Wastage.RightSizing.EbsIops.Max == nil {
 		iopsProperty.Max = ""
 	}
 
 	netThroughputProperty := &golang.Property{
 		Key:     "  Throughput",
 		Current: fmt.Sprintf("%s", i.Wastage.RightSizing.Current.NetworkThroughput),
-		Average: utils.PNetworkThroughputMbps(i.Wastage.RightSizing.NetworkThroughput.Avg),
-		Max:     utils.PNetworkThroughputMbps(i.Wastage.RightSizing.NetworkThroughput.Max),
+		Average: utils.PNetworkThroughputMbps(shared.WrappedToFloat64(i.Wastage.RightSizing.NetworkThroughput.Avg)),
+		Max:     utils.PNetworkThroughputMbps(shared.WrappedToFloat64(i.Wastage.RightSizing.NetworkThroughput.Max)),
 	}
 	enaProperty := &golang.Property{
 		Key:     "  ENASupportChangeInInstanceType",
-		Current: fmt.Sprintf("%s", i.Wastage.RightSizing.Current.ENASupported),
+		Current: fmt.Sprintf("%s", i.Wastage.RightSizing.Current.EnaSupported),
 	}
 
 	costComponentPropertiesMap := make(map[string]*golang.Property)
@@ -141,15 +142,15 @@ func (i EC2InstanceItem) EC2InstanceDevice() (*golang.ChartRow, map[string]*gola
 		}
 		regionProperty.Recommended = i.Wastage.RightSizing.Recommended.Region
 		instanceSizeProperty.Recommended = i.Wastage.RightSizing.Recommended.InstanceType
-		vCPUProperty.Recommended = fmt.Sprintf("%d", i.Wastage.RightSizing.Recommended.VCPU)
+		vCPUProperty.Recommended = fmt.Sprintf("%d", i.Wastage.RightSizing.Recommended.Vcpu)
 		processorProperty.Recommended = i.Wastage.RightSizing.Recommended.Processor
 		architectureProperty.Recommended = i.Wastage.RightSizing.Recommended.Architecture
 		licenseCostProperty.Recommended = fmt.Sprintf("$%.2f", i.Wastage.RightSizing.Recommended.LicensePrice)
 		memoryProperty.Recommended = fmt.Sprintf("%.1f GiB", i.Wastage.RightSizing.Recommended.Memory)
-		ebsProperty.Recommended = i.Wastage.RightSizing.Recommended.EBSBandwidth
-		iopsProperty.Recommended = i.Wastage.RightSizing.Recommended.EBSIops
+		ebsProperty.Recommended = i.Wastage.RightSizing.Recommended.EbsBandwidth
+		iopsProperty.Recommended = i.Wastage.RightSizing.Recommended.EbsIops
 		netThroughputProperty.Recommended = i.Wastage.RightSizing.Recommended.NetworkThroughput
-		enaProperty.Recommended = i.Wastage.RightSizing.Recommended.ENASupported
+		enaProperty.Recommended = i.Wastage.RightSizing.Recommended.EnaSupported
 		for k, v := range i.Wastage.RightSizing.Recommended.CostComponents {
 			if _, ok := costComponentPropertiesMap[k]; !ok {
 				costComponentPropertiesMap[k] = &golang.Property{
@@ -205,7 +206,7 @@ func (i EC2InstanceItem) EC2InstanceDevice() (*golang.ChartRow, map[string]*gola
 	return &row, props
 }
 
-func (i EC2InstanceItem) EBSVolumeDevice(v types.Volume, vs kaytu.EBSVolumeRecommendation) (*golang.ChartRow, map[string]*golang.Properties) {
+func (i EC2InstanceItem) EBSVolumeDevice(v types.Volume, vs *golang2.EBSVolumeRecommendation) (*golang.ChartRow, map[string]*golang.Properties) {
 	var name string
 	for _, t := range i.Instance.Tags {
 		if t.Key != nil && strings.ToLower(*t.Key) == "name" && t.Value != nil {
@@ -245,26 +246,26 @@ func (i EC2InstanceItem) EBSVolumeDevice(v types.Volume, vs kaytu.EBSVolumeRecom
 	}
 	volumeSizeProp := &golang.Property{
 		Key:     "  Volume Size (GB)",
-		Current: utils.SizeByteToGB(vs.Current.VolumeSize),
+		Current: utils.SizeByteToGB(shared.WrappedToInt32(vs.Current.VolumeSize)),
 	}
 	iopsProp := &golang.Property{
 		Key:     "IOPS",
-		Current: fmt.Sprintf("%d", vs.Current.IOPS()),
-		Average: utils.PFloat64ToString(vs.IOPS.Avg),
-		Max:     utils.PFloat64ToString(vs.IOPS.Max),
+		Current: fmt.Sprintf("%d", getRightsizingEBSVolumeIOPS(vs.Current)),
+		Average: utils.PFloat64ToString(shared.WrappedToFloat64(vs.Iops.Avg)),
+		Max:     utils.PFloat64ToString(shared.WrappedToFloat64(vs.Iops.Max)),
 	}
 	baselineIOPSProp := &golang.Property{
 		Key:     "  Baseline IOPS",
-		Current: fmt.Sprintf("%d", vs.Current.BaselineIOPS),
+		Current: fmt.Sprintf("%d", vs.Current.BaselineIops),
 	}
 	provisionedIOPSProp := &golang.Property{
 		Key:     "  Provisioned IOPS",
-		Current: utils.PInt32ToString(vs.Current.ProvisionedIOPS),
+		Current: utils.PInt32ToString(shared.WrappedToInt32(vs.Current.ProvisionedIops)),
 	}
 	throughputProp := &golang.Property{
 		Key:     "Throughput (MB/s)",
-		Current: fmt.Sprintf("%.2f", vs.Current.Throughput()),
-		Average: PNetworkThroughputMBps(vs.Throughput.Avg),
+		Current: fmt.Sprintf("%.2f", getRightsizingEBSVolumeThroughput(vs.Current)),
+		Average: PNetworkThroughputMBps(shared.WrappedToFloat64(vs.Throughput.Avg)),
 	}
 	baselineThroughputProp := &golang.Property{
 		Key:     "  Baseline Throughput",
@@ -272,7 +273,7 @@ func (i EC2InstanceItem) EBSVolumeDevice(v types.Volume, vs kaytu.EBSVolumeRecom
 	}
 	provisionedThroughputProp := &golang.Property{
 		Key:     "  Provisioned Throughput",
-		Current: PNetworkThroughputMBps(vs.Current.ProvisionedThroughput),
+		Current: PNetworkThroughputMBps(shared.WrappedToFloat64(vs.Current.ProvisionedThroughput)),
 	}
 	costComponentPropertiesMap := make(map[string]*golang.Property)
 	for k, vv := range vs.Current.CostComponents {
@@ -289,14 +290,14 @@ func (i EC2InstanceItem) EBSVolumeDevice(v types.Volume, vs kaytu.EBSVolumeRecom
 		row.Values["savings"] = &golang.ChartRowItem{
 			Value: utils.FormatPriceFloat(vs.Current.Cost - vs.Recommended.Cost),
 		}
-		storageTierProp.Recommended = string(vs.Recommended.Tier)
-		volumeSizeProp.Recommended = utils.SizeByteToGB(vs.Recommended.VolumeSize)
-		iopsProp.Recommended = fmt.Sprintf("%d", vs.Recommended.IOPS())
-		baselineIOPSProp.Recommended = fmt.Sprintf("%d", vs.Recommended.BaselineIOPS)
-		provisionedIOPSProp.Recommended = utils.PInt32ToString(vs.Recommended.ProvisionedIOPS)
-		throughputProp.Recommended = fmt.Sprintf("%.2f", vs.Recommended.Throughput())
+		storageTierProp.Recommended = vs.Recommended.Tier
+		volumeSizeProp.Recommended = utils.SizeByteToGB(shared.WrappedToInt32(vs.Recommended.VolumeSize))
+		iopsProp.Recommended = fmt.Sprintf("%d", getRightsizingEBSVolumeIOPS(vs.Recommended))
+		baselineIOPSProp.Recommended = fmt.Sprintf("%d", vs.Recommended.BaselineIops)
+		provisionedIOPSProp.Recommended = utils.PInt32ToString(shared.WrappedToInt32(vs.Recommended.ProvisionedIops))
+		throughputProp.Recommended = fmt.Sprintf("%.2f", getRightsizingEBSVolumeThroughput(vs.Recommended))
 		baselineThroughputProp.Recommended = utils.NetworkThroughputMbps(vs.Recommended.BaselineThroughput)
-		provisionedThroughputProp.Recommended = utils.PNetworkThroughputMbps(vs.Recommended.ProvisionedThroughput)
+		provisionedThroughputProp.Recommended = utils.PNetworkThroughputMbps(shared.WrappedToFloat64(vs.Recommended.ProvisionedThroughput))
 		for k, vv := range vs.Recommended.CostComponents {
 			if _, ok := costComponentPropertiesMap[k]; !ok {
 				costComponentPropertiesMap[k] = &golang.Property{
@@ -358,22 +359,25 @@ func (i EC2InstanceItem) EBSVolumeDevice(v types.Volume, vs kaytu.EBSVolumeRecom
 func (i EC2InstanceItem) Devices() ([]*golang.ChartRow, map[string]*golang.Properties) {
 	var deviceRows []*golang.ChartRow
 	deviceProps := make(map[string]*golang.Properties)
-	ec2Rows, ec2Props := i.EC2InstanceDevice()
-	deviceRows = append(deviceRows, ec2Rows)
-	for k, v := range ec2Props {
-		deviceProps[k] = v
-	}
-	for _, v := range i.Volumes {
-		vs, ok := i.Wastage.VolumeRightSizing[utils.HashString(*v.VolumeId)]
-		if !ok {
-			continue
+
+	if i.Wastage != nil {
+		ec2Rows, ec2Props := i.EC2InstanceDevice()
+		deviceRows = append(deviceRows, ec2Rows)
+		for k, v := range ec2Props {
+			deviceProps[k] = v
 		}
+		for _, v := range i.Volumes {
+			vs, ok := i.Wastage.VolumeRightSizing[utils.HashString(*v.VolumeId)]
+			if !ok {
+				continue
+			}
 
-		ebsRows, ebsProps := i.EBSVolumeDevice(v, vs)
+			ebsRows, ebsProps := i.EBSVolumeDevice(v, vs)
 
-		deviceRows = append(deviceRows, ebsRows)
-		for k, val := range ebsProps {
-			deviceProps[k] = val
+			deviceRows = append(deviceRows, ebsRows)
+			for k, val := range ebsProps {
+				deviceProps[k] = val
+			}
 		}
 	}
 	return deviceRows, deviceProps
@@ -444,7 +448,6 @@ func (i EC2InstanceItem) ToOptimizationItem() *golang.ChartOptimizationItem {
 		DevicesChartRows:   deviceRows,
 		DevicesProperties:  deviceProps,
 		Preferences:        i.Preferences,
-		Description:        i.Wastage.RightSizing.Description,
 		Loading:            i.OptimizationLoading,
 		Skipped:            i.Skipped,
 		SkipReason:         nil,
@@ -452,6 +455,9 @@ func (i EC2InstanceItem) ToOptimizationItem() *golang.ChartOptimizationItem {
 	}
 	if i.SkipReason != "" {
 		oi.SkipReason = &wrapperspb.StringValue{Value: i.SkipReason}
+	}
+	if i.Wastage != nil && i.Wastage.RightSizing != nil {
+		oi.Description = i.Wastage.RightSizing.Description
 	}
 
 	return oi
@@ -463,4 +469,20 @@ func PNetworkThroughputMBps(v *float64) string {
 	}
 	vv := *v / (1024 * 1024)
 	return fmt.Sprintf("%.2f MB/s", vv)
+}
+
+func getRightsizingEBSVolumeIOPS(v *golang2.RightsizingEBSVolume) int32 {
+	val := v.BaselineIops
+	if v.ProvisionedIops != nil {
+		val += v.ProvisionedIops.GetValue()
+	}
+	return val
+}
+
+func getRightsizingEBSVolumeThroughput(v *golang2.RightsizingEBSVolume) float64 {
+	val := v.BaselineThroughput
+	if v.ProvisionedThroughput != nil {
+		val += v.ProvisionedThroughput.GetValue()
+	}
+	return val
 }

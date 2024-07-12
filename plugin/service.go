@@ -11,10 +11,16 @@ import (
 	"github.com/kaytu-io/plugin-aws/plugin/preferences"
 	processor2 "github.com/kaytu-io/plugin-aws/plugin/processor"
 	"github.com/kaytu-io/plugin-aws/plugin/processor/ec2_instance"
+	golang2 "github.com/kaytu-io/plugin-aws/plugin/proto/src/golang"
 	"github.com/kaytu-io/plugin-aws/plugin/version"
+	"golang.org/x/oauth2"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/credentials/oauth"
 	"math"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type AWSPlugin struct {
@@ -227,6 +233,20 @@ func (p *AWSPlugin) StartProcess(ctx context.Context, command string, flags map[
 			observabilityDays = int(days)
 		}
 	}
+
+	conn, err := grpc.NewClient("gapi.kaytu.io:443",
+		grpc.WithTransportCredentials(credentials.NewTLS(nil)),
+		grpc.WithPerRPCCredentials(oauth.TokenSource{
+			TokenSource: oauth2.StaticTokenSource(&oauth2.Token{
+				AccessToken: kaytuAccessToken,
+			}),
+		}),
+		grpc.WithIdleTimeout(10*time.Minute))
+	if err != nil {
+		return err
+	}
+	client := golang2.NewOptimizationClient(conn)
+
 	if command == "ec2-instance" {
 		p.processor = ec2_instance.NewProcessor(
 			awsPrv,
@@ -239,6 +259,7 @@ func (p *AWSPlugin) StartProcess(ctx context.Context, command string, flags map[
 			configurations,
 			observabilityDays,
 			preferences,
+			client,
 		)
 	} else if command == "rds-instance" {
 		p.processor = processor2.NewRDSProcessor(
@@ -252,6 +273,7 @@ func (p *AWSPlugin) StartProcess(ctx context.Context, command string, flags map[
 			configurations,
 			observabilityDays,
 			preferences,
+			client,
 		)
 	} else {
 		return fmt.Errorf("invalid command: %s", command)
