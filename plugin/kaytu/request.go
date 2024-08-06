@@ -17,7 +17,7 @@ func Ec2InstanceWastageRequest(ctx context.Context, reqBody EC2InstanceWastageRe
 	if err != nil {
 		return nil, err
 	}
-	req, err := http.NewRequestWithContext(ctx, "POST", "https://api.kaytu.io/kaytu/wastage/api/v1/wastage/ec2-instance", bytes.NewBuffer(payloadEncoded))
+	req, err := http.NewRequestWithContext(ctx, "POST", "https://app.kaytu.io/kaytu/wastage/api/v1/wastage/ec2-instance", bytes.NewBuffer(payloadEncoded))
 	if err != nil {
 		return nil, fmt.Errorf("[ec2-instance]: %v", err)
 	}
@@ -60,7 +60,7 @@ func RDSInstanceWastageRequest(ctx context.Context, reqBody AwsRdsWastageRequest
 	if err != nil {
 		return nil, err
 	}
-	req, err := http.NewRequestWithContext(ctx, "POST", "https://api.kaytu.io/kaytu/wastage/api/v1/wastage/aws-rds", bytes.NewBuffer(payloadEncoded))
+	req, err := http.NewRequestWithContext(ctx, "POST", "https://app.kaytu.io/kaytu/wastage/api/v1/wastage/aws-rds", bytes.NewBuffer(payloadEncoded))
 	if err != nil {
 		return nil, fmt.Errorf("[rds-instance]: %v", err)
 	}
@@ -103,7 +103,7 @@ func RDSClusterWastageRequest(ctx context.Context, reqBody AwsClusterWastageRequ
 	if err != nil {
 		return nil, err
 	}
-	req, err := http.NewRequestWithContext(ctx, "POST", "https://api.kaytu.io/kaytu/wastage/api/v1/wastage/aws-rds-cluster", bytes.NewBuffer(payloadEncoded))
+	req, err := http.NewRequestWithContext(ctx, "POST", "https://app.kaytu.io/kaytu/wastage/api/v1/wastage/aws-rds-cluster", bytes.NewBuffer(payloadEncoded))
 	if err != nil {
 		return nil, fmt.Errorf("[rds-cluster]: %v", err)
 	}
@@ -142,7 +142,7 @@ func RDSClusterWastageRequest(ctx context.Context, reqBody AwsClusterWastageRequ
 }
 
 func ConfigurationRequest(ctx context.Context) (*Configuration, error) {
-	req, err := http.NewRequestWithContext(ctx, "POST", "https://api.kaytu.io/kaytu/wastage/api/v1/wastage/configuration", nil)
+	req, err := http.NewRequestWithContext(ctx, "POST", "https://app.kaytu.io/kaytu/wastage/api/v1/wastage/configuration", nil)
 	if err != nil {
 		return nil, fmt.Errorf("[ConfigurationRequest]: %v", err)
 	}
