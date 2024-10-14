@@ -1,9 +1,9 @@
 ---
-project_name: kaytu
+project_name: opengovern
 
 release:
   github:
-    owner: kaytu-io
+    owner: opengovern
     name: plugin-aws
 
 checksum: {}
