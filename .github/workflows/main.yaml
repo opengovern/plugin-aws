@@ -42,7 +42,7 @@ jobs:
           version=${version#v}
           echo $version > new_tag.txt
       - name: Upload new tag
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: new_tag
           path: new_tag.txt
