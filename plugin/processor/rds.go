@@ -4,12 +4,12 @@ import (
 	"github.com/kaytu-io/kaytu/pkg/plugin/proto/src/golang"
 	"github.com/kaytu-io/kaytu/pkg/plugin/sdk"
 	"github.com/kaytu-io/kaytu/pkg/utils"
-	"github.com/kaytu-io/plugin-aws/plugin/aws"
-	"github.com/kaytu-io/plugin-aws/plugin/kaytu"
-	"github.com/kaytu-io/plugin-aws/plugin/processor/ec2_instance"
-	"github.com/kaytu-io/plugin-aws/plugin/processor/rds_cluster"
-	"github.com/kaytu-io/plugin-aws/plugin/processor/rds_instance"
-	golang2 "github.com/kaytu-io/plugin-aws/plugin/proto/src/golang"
+	"github.com/opengovern/plugin-aws/plugin/aws"
+	"github.com/opengovern/plugin-aws/plugin/kaytu"
+	"github.com/opengovern/plugin-aws/plugin/processor/ec2_instance"
+	"github.com/opengovern/plugin-aws/plugin/processor/rds_cluster"
+	"github.com/opengovern/plugin-aws/plugin/processor/rds_instance"
+	golang2 "github.com/opengovern/plugin-aws/plugin/proto/src/golang"
 	"sync/atomic"
 )
 

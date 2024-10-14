@@ -7,7 +7,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/kaytu-io/kaytu/pkg/plugin/sdk"
 	"github.com/kaytu-io/kaytu/pkg/utils"
-	aws2 "github.com/kaytu-io/plugin-aws/plugin/aws"
+	aws2 "github.com/opengovern/plugin-aws/plugin/aws"
 	"time"
 )
 

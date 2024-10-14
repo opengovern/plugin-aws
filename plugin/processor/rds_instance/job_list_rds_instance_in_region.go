@@ -8,8 +8,8 @@ import (
 	"github.com/kaytu-io/kaytu/pkg/plugin/sdk"
 	"github.com/kaytu-io/kaytu/pkg/utils"
 	"github.com/kaytu-io/kaytu/preferences"
-	"github.com/kaytu-io/plugin-aws/plugin/kaytu"
-	"github.com/kaytu-io/plugin-aws/plugin/version"
+	"github.com/opengovern/plugin-aws/plugin/kaytu"
+	"github.com/opengovern/plugin-aws/plugin/version"
 	"strings"
 )
 
