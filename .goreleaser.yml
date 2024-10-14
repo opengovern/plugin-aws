@@ -12,7 +12,7 @@ builds:
   - id: linux
     binary: plugin
     ldflags:
-      - -s -w -X github.com/kaytu-io/plugin-aws/plugin/version.VERSION={{ .Version }}
+      - -s -w -X github.com/opengovern/plugin-aws/plugin/version.VERSION={{ .Version }}
     goos:
       - linux
     goarch:
@@ -24,7 +24,7 @@ builds:
   - id: darwin
     binary: plugin
     ldflags:
-      - -s -w -X github.com/kaytu-io/plugin-aws/plugin/version.VERSION={{ .Version }}
+      - -s -w -X github.com/opengovern/plugin-aws/plugin/version.VERSION={{ .Version }}
     goos:
       - darwin
     goarch:
@@ -36,7 +36,7 @@ builds:
   - id: windows
     binary: plugin
     ldflags:
-      - -s -w -X github.com/kaytu-io/plugin-aws/plugin/version.VERSION={{ .Version }}
+      - -s -w -X github.com/opengovern/plugin-aws/plugin/version.VERSION={{ .Version }}
     goos:
       - windows
     goarch:

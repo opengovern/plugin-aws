@@ -8,8 +8,8 @@ import (
 	"github.com/kaytu-io/kaytu/pkg/plugin/sdk"
 	"github.com/kaytu-io/kaytu/pkg/utils"
 	"github.com/kaytu-io/kaytu/preferences"
-	kaytu2 "github.com/kaytu-io/plugin-aws/plugin/kaytu"
-	"github.com/kaytu-io/plugin-aws/plugin/version"
+	kaytu2 "github.com/opengovern/plugin-aws/plugin/kaytu"
+	"github.com/opengovern/plugin-aws/plugin/version"
 )
 
 type ListEC2InstancesInRegionJob struct {

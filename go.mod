@@ -1,4 +1,4 @@
-module github.com/kaytu-io/plugin-aws
+module github.com/opengovern/plugin-aws
 
 go 1.21.3
 
